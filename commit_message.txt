@@ -1,22 +1,7 @@
-[Cursor] Improve UI and fix authentication issues
+[Cursor] Fix TypeScript errors for Three.js libraries on Render
 
-- Fixed authentication flow to properly handle user state after signup
-- Updated onboarding flow to work in demo mode when no user is present
-- Completely redesigned UI with better colors, gradients, and improved layouts
-- Added dedicated ArticleDetail component with tabbed interface
-- Improved ArticleCard component with expand/collapse functionality
-- Enhanced dark mode support with better contrast and color schemes
-- Added LoadingSpinner component with multiple size options
-- Fixed multiple TypeScript issues and linting errors
-- Configured application for Render deployment
-- Added server.js for serving the built application
-
-[Cursor] Add real news API integration
-
-- Integrated real news articles from multiple sources (TheNewsAPI, NewsData.io)
-- Updated news service to fetch live articles based on selected category
-- Added fallback to mock data when APIs are unavailable
-- Enhanced article search to use real news APIs
-- Added category mapping for consistent news categorization
-- Updated deployment documentation with News API key instructions
-- Implemented error handling for API failures
+- Added custom type declarations for @react-three/fiber and @react-three/drei
+- Added JSX intrinsic elements for Three.js components
+- Updated vite-env.d.ts with additional environment variables
+- Added typeRoots configuration to TypeScript config
+- Fixed type errors reported during Render deployment
