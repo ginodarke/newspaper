@@ -1,0 +1,85 @@
+# Newspaper.AI Project
+
+## Lessons
+
+### User Specified Lessons
+- You have a python venv in ./venv. Always use (activate) it when doing python development. First, to check whether 'uv' is available, use `which uv`. If that's the case, first activate the venv, and then use `uv pip install` to install packages. Otherwise, fall back to `pip`.
+- Due to Cursor's limit, when you use `git` and `gh` and need to submit a multiline commit message, first write the message in a file, and then use `git commit -F <filename>` or similar command to commit. And then remove the file. Include "[Cursor] " in the commit message and PR title.
+
+### Cursor learned
+- For search results, ensure proper handling of different character encodings (UTF-8) for international queries
+- When using seaborn styles in matplotlib, use 'seaborn-v0_8' instead of 'seaborn' as the style name due to recent seaborn version changes
+- Use 'gpt-4o' as the model name for OpenAI's GPT-4 with vision capabilities
+- When searching for recent news, use the current year (2025) instead of previous years, or simply use the "recent" keyword to get the latest information
+- When implementing a React application with TypeScript, ensure that the TypeScript types for React and other libraries are properly installed to avoid linter errors
+- When testing React components with Vitest, ensure to create a proper setup file that includes necessary mocks for browser APIs like matchMedia and localStorage
+- For Vite projects, define custom environment variables in a vite-env.d.ts file using the ImportMetaEnv interface to ensure proper TypeScript integration
+- When setting up E2E tests with Playwright for React applications, create test files in a separate test directory and configure Playwright to start the dev server automatically
+- For CI/CD pipelines, ensure that GitHub Actions workflows are set up with appropriate caching to speed up builds and proper test commands
+
+## Scratchpad
+
+### Project Overview: Newspaper.AI
+
+Newspaper.AI is an AI-powered news aggregator with personalized content delivery. The app combines TikTok-like consumption speed with AI-generated summaries and analysis of news articles, tailored to each user.
+
+#### Tech Stack:
+- Frontend: React, Tailwind CSS, shadcn/ui, Framer Motion
+- Backend: Node.js, Supabase
+- AI: OpenRouter (OpenAI integration)
+- Location: Radar API
+- News Sources: Multiple news APIs (TheNewsAPI, NewsData.io, ApiTube, NewsAPI)
+- Deployment: Render
+- Testing: Vitest (unit), Playwright (E2E)
+
+#### Project Structure:
+- React application with React Router for navigation
+- Auth system using Supabase
+- Personalized onboarding flow
+- News feed with categorized articles
+
+#### Current Progress:
+- Basic application structure is set up
+- Pages created: Home, Auth, Onboarding, NewsFeed, Profile, SearchResults, NotFound
+- Services: Supabase auth, news service, AI summary service
+- Authentication flow implemented with Supabase
+- Onboarding process connects to Supabase for storing user preferences
+- News feed fetches news based on user preferences
+- Added ArticleDetail component with tabbed interface for viewing article details
+- Implemented loading and error states in the NewsFeed component
+- Integrated AI summary functionality for personalized article relevance
+- Fixed TypeScript type errors by installing necessary type packages
+- Added user profile management for updating preferences
+- Added navigation between NewsFeed and Profile pages
+- Implemented dark mode toggle with theme persistence
+- Applied dark mode styles throughout the application
+- Added search functionality with a dedicated search results page
+- Implemented error boundaries for better fault tolerance
+- Added unit tests for components using Vitest
+- Added E2E tests with Playwright for critical user flows
+- Set up CI/CD pipeline with GitHub Actions for testing and deployment to Render
+
+#### Next Steps:
+[X] Implement real authentication with Supabase
+[X] Connect onboarding preferences to Supabase
+[X] Fetch real news articles in the NewsFeed component
+[X] Implement proper error handling and loading states
+[X] Create article detail view
+[X] Add AI summary functionality
+[X] Fix TypeScript linter errors for React, React-Router, and React-DOM
+[X] Add user profile management page
+[X] Implement dark mode toggle
+[X] Add search functionality for finding specific news
+[X] Implement proper error boundaries for fault tolerance
+[X] Add unit tests
+[X] Set up E2E tests with Playwright
+[X] Set up proper deployment pipeline
+
+#### Final Improvements:
+- Refine UI and UX with smoother transitions
+- Add empty state illustrations for better user experience
+- Implement progressive loading of articles (infinite scroll)
+- Add ability to share articles via social media
+
+#### Issues to fix:
+- Fix article content styling and layout for better readability 
