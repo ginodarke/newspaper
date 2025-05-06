@@ -1,12 +1,11 @@
 import { useRef, useState, useEffect } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useGLTF, Environment, ContactShadows, Float, Text } from '@react-three/drei';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { useGLTF, Environment, ContactShadows, Float } from '@react-three/drei';
 import * as THREE from 'three';
 
 function NewspaperModel(props: any) {
-  const { nodes, materials } = useGLTF("/newspaper.glb") as any;
+  const { nodes } = useGLTF("/newspaper.glb") as any;
   const group = useRef<THREE.Group>(null);
-  const { viewport } = useThree();
   
   useFrame((state) => {
     if (group.current) {

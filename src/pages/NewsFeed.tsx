@@ -22,7 +22,6 @@ export default function NewsFeed() {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [expandedArticle, setExpandedArticle] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<LocationData | null>(null);
-  const [showLocalNews, setShowLocalNews] = useState(false);
 
   const categories = ['All', 'Local', 'Technology', 'Business', 'Politics', 'Science', 'Health', 'Sports', 'Entertainment', 'World News'];
   
@@ -40,7 +39,6 @@ export default function NewsFeed() {
           if (location) {
             console.log('User location:', location);
             setUserLocation(location);
-            setShowLocalNews(true);
           }
         } else {
           console.log('No user found, using default preferences');
@@ -70,7 +68,8 @@ export default function NewsFeed() {
         await new Promise(resolve => setTimeout(resolve, 800));
         
         const category = activeCategory === 'All' ? null : activeCategory;
-        const data = await getArticles(category, userLocation);
+        // Pass userLocation as undefined when it's null to match function parameter type
+        const data = await getArticles(category, userLocation || undefined);
         setArticles(data);
       } catch (err: any) {
         setError(err.message || 'Failed to fetch articles');
