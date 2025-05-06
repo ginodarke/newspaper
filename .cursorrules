@@ -16,6 +16,7 @@
 - For Vite projects, define custom environment variables in a vite-env.d.ts file using the ImportMetaEnv interface to ensure proper TypeScript integration
 - When setting up E2E tests with Playwright for React applications, create test files in a separate test directory and configure Playwright to start the dev server automatically
 - For CI/CD pipelines, ensure that GitHub Actions workflows are set up with appropriate caching to speed up builds and proper test commands
+- When deploying React apps to Render, ensure the render.yaml file includes proper redirect rules for SPA routing and environment variable configuration
 
 ## Scratchpad
 
@@ -58,6 +59,8 @@ Newspaper.AI is an AI-powered news aggregator with personalized content delivery
 - Added unit tests for components using Vitest
 - Added E2E tests with Playwright for critical user flows
 - Set up CI/CD pipeline with GitHub Actions for testing and deployment to Render
+- Created deployment guide for Render with step-by-step instructions
+- Built the application successfully for production deployment
 
 #### Next Steps:
 [X] Implement real authentication with Supabase
