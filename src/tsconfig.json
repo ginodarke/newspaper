@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "components/*": ["components/*"],
+      "contexts/*": ["contexts/*"],
+      "pages/*": ["pages/*"],
+      "services/*": ["services/*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.d.ts"
+  ]
+} 
