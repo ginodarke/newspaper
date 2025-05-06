@@ -1,16 +1,17 @@
 services:
   - type: web
-    name: newspaper-ai-frontend
-    env: static
+    name: newspaper
+    env: node
     buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
+    startCommand: npm start
     envVars:
       - key: NODE_VERSION
         value: 18
-      - key: VITE_SUPABASE_URL
-        sync: false
-      - key: VITE_SUPABASE_ANON_KEY
-        sync: false
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    staticPublishPath: ./dist
     routes:
       - type: rewrite
         source: /*
@@ -21,4 +22,5 @@ services:
         value: "public, max-age=3600"
       - path: /assets/*
         name: Cache-Control
-        value: "public, max-age=31536000" 
+        value: "public, max-age=31536000"
+    autoDeploy: true 
