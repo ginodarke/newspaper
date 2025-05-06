@@ -5,71 +5,66 @@ import { Article } from './news';
 
 interface AISummaryResponse {
   summary: string;
-  bulletPoints: string[];
-  relevance: string;
-  context: string;
+  relevanceScore: number;
 }
 
-export const generateArticleSummary = async (articleContent: string, userInterests: string[]): Promise<AISummaryResponse> => {
-  // This is a mock implementation
-  // In a real app, we would send the article content to an AI service
-  
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
+// Mock function for AI-powered article summary generation
+// In a real app, this would call an AI service like OpenAI or Claude
+export const generateArticleSummary = async (): Promise<AISummaryResponse> => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 500));
   
   // Mock response
   return {
-    summary: "This is an AI-generated summary of the article, highlighting the key points in a concise format that's easy to digest.",
-    bulletPoints: [
-      "First key point extracted from the article",
-      "Second important detail that readers should know",
-      "Potential implications discussed in the article",
-      "Background context that helps understand the news",
-      "Expert opinions or reactions mentioned",
-      "Future outlook or next steps"
-    ],
-    relevance: userInterests.length > 0 
-      ? `This article relates to your interest in ${userInterests[0]} and provides insights that could impact decisions in this area.`
-      : "This article is trending in your region and may affect local policies.",
-    context: "This topic has historical precedents dating back to similar events in previous years. Understanding these patterns helps contextualize the current situation and possible future developments."
+    summary: 'This article discusses recent technological advancements and their potential impact on society and the economy.',
+    relevanceScore: Math.random() * 10
   };
 };
 
-export const generatePersonalRelevance = async (article: Article, userPreferences: any): Promise<string> => {
-  // In a real app, we would use AI to explain why this article matters to the user
-  // based on their preferences, location, and other factors
+// Mock function to enrich an article with AI insights
+export const enrichArticleWithAI = async (article: Article, userPreferences: any): Promise<Article> => {
+  // In a real implementation, we would call an AI API with the article content and user preferences
   
-  // Simulate API delay
+  // Simulate API call delay
   await new Promise(resolve => setTimeout(resolve, 800));
   
-  const relevanceReasons = [
-    "This aligns with your interest in technology and innovation.",
-    "Based on your location, this news could impact local services.",
-    "You've previously shown interest in content like this.",
-    "This topic connects to your professional field.",
-    "This news is trending significantly in your area."
-  ];
-  
-  // Simple mock implementation
-  return relevanceReasons[Math.floor(Math.random() * relevanceReasons.length)];
+  // Add AI-generated relevance reason based on user preferences
+  return {
+    ...article,
+    relevanceReason: generateRelevanceReason(userPreferences.categories)
+  };
 };
 
-export const enrichArticleWithAI = async (article: Article, userPreferences: any): Promise<Article> => {
-  // In a real app, this would use the OpenRouter API to enrich the article with AI insights
+// Mock function to generate personal relevance explanation
+export const generatePersonalRelevance = async (): Promise<string> => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 300));
   
-  try {
-    // Get personalized relevance
-    const relevance = await generatePersonalRelevance(article, userPreferences);
-    
-    // Deep copy the article and add AI-generated content
-    const enrichedArticle: Article = {
-      ...article,
-      relevanceReason: relevance
-    };
-    
-    return enrichedArticle;
-  } catch (error) {
-    console.error('Error enriching article with AI:', error);
-    return article; // Return original article if enrichment fails
+  const reasons = [
+    'This aligns with your interest in technology and recent browsing patterns.',
+    'Based on your selected topics, this news may impact your professional field.',
+    'You\'ve shown interest in similar topics over the past week.',
+    'This relates to your location and local developments you might want to follow.',
+    'This topic intersects with multiple interests in your profile.'
+  ];
+  
+  return reasons[Math.floor(Math.random() * reasons.length)];
+};
+
+// Helper function to generate relevance reasons based on user categories
+function generateRelevanceReason(categories: string[]): string {
+  if (!categories || categories.length === 0) {
+    return 'This is a trending topic you might find interesting.';
   }
-}; 
+  
+  const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+  
+  const templates = [
+    `Based on your interest in ${randomCategory}.`,
+    `This relates to ${randomCategory}, which appears in your preferences.`,
+    `You've expressed interest in ${randomCategory}, which this article covers.`,
+    `This might be relevant to your interest in ${randomCategory}.`,
+  ];
+  
+  return templates[Math.floor(Math.random() * templates.length)];
+} 

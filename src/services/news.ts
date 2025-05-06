@@ -3,13 +3,14 @@ import { supabase } from './supabase';
 export interface Article {
   id: string;
   title: string;
-  summary: string;
-  content: string;
-  source: string;
-  url: string;
-  publishedAt: string;
   category: string;
+  source: string;
+  url?: string;
   imageUrl?: string;
+  summary: string;
+  content?: string;
+  description?: string;
+  publishedAt: string;
   relevanceReason?: string;
 }
 
@@ -61,33 +62,29 @@ export const getMockArticles = (): Article[] => {
   ];
 };
 
-// Get articles from the database
-export const getArticles = async (preferences?: UserPreferences): Promise<Article[]> => {
+// Function to get articles based on category and user preferences
+export async function getArticles(category: string | null = null): Promise<Article[]> {
   try {
-    // If in development or testing, return mock data
-    if (process.env.NODE_ENV === 'development' || !preferences) {
-      return getMockArticles();
-    }
-
-    // In a real implementation, we would fetch from Supabase or an external API
-    const { data, error } = await supabase
-      .from('articles')
-      .select('*')
-      .in('category', preferences.categories || [])
-      .order('publishedAt', { ascending: false })
-      .limit(20);
-
-    if (error) {
-      console.error('Error fetching articles:', error);
-      return getMockArticles();
-    }
-
-    return data as Article[];
+    // In a real app, we would fetch articles from a real API
+    // using the category and preferences
+    
+    // For this demo, we'll use mock data
+    const allArticles = getMockArticles();
+    
+    // Filter by category if specified
+    const filteredArticles = category 
+      ? allArticles.filter(article => article.category === category)
+      : allArticles;
+    
+    // Sleep for a brief moment to simulate network latency
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    return filteredArticles;
   } catch (error) {
-    console.error('Error in getArticles:', error);
-    return getMockArticles();
+    console.error('Error fetching articles:', error);
+    throw new Error('Failed to fetch articles');
   }
-};
+}
 
 // Search articles
 export const searchArticles = async (query: string, preferences?: UserPreferences): Promise<Article[]> => {
@@ -106,9 +103,9 @@ export const searchArticles = async (query: string, preferences?: UserPreference
           article.summary.toLowerCase().includes(term)
         );
         
-        const contentMatches = searchTerms.some(term => 
-          article.content.toLowerCase().includes(term)
-        );
+        const contentMatches = article.content ? searchTerms.some(term => 
+          article.content!.toLowerCase().includes(term)
+        ) : false;
         
         const categoryMatches = searchTerms.some(term => 
           article.category.toLowerCase().includes(term)
@@ -141,7 +138,7 @@ export const searchArticles = async (query: string, preferences?: UserPreference
 // Save user preferences
 export const saveUserPreferences = async (userId: string, preferences: UserPreferences): Promise<{ success: boolean; error: any }> => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('user_preferences')
       .upsert({ 
         user_id: userId,

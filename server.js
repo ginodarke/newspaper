@@ -1,21 +1,21 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
-
+const compression = require('compression');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Serve static files from the dist directory
+// Compress all responses
+app.use(compression());
+
+// Serve static files from the React app
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// For any GET request that's not for a static file, serve index.html
+// For any request that doesn't match one above, send the index.html file
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-// Start the server
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Application is available at: http://localhost:${PORT}`);
-  console.log('When deployed to Render, it will be available at your Render URL');
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Visit http://localhost:${PORT} to view the application`);
 }); 

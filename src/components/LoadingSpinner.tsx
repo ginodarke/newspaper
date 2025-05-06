@@ -3,25 +3,20 @@ interface LoadingSpinnerProps {
 }
 
 export default function LoadingSpinner({ size = 'medium' }: LoadingSpinnerProps) {
-  const sizeMap = {
-    small: 'w-4 h-4 border-2',
-    medium: 'w-8 h-8 border-3',
-    large: 'w-12 h-12 border-4'
+  const sizeClasses = {
+    small: 'w-5 h-5',
+    medium: 'w-8 h-8',
+    large: 'w-12 h-12'
   };
-
-  const spinnerSize = sizeMap[size];
-
+  
+  const spinnerSize = sizeClasses[size];
+  
   return (
-    <div className="flex justify-center items-center">
-      <div 
-        className={`${spinnerSize} border-t-blue-500 border-solid rounded-full animate-spin`}
-        style={{ 
-          borderTopColor: 'currentColor',
-          borderRightColor: 'transparent',
-          borderBottomColor: 'transparent',
-          borderLeftColor: 'transparent'
-        }}
-      />
+    <div className="flex flex-col items-center justify-center">
+      <div className={`${spinnerSize} animate-spin rounded-full border-4 border-blue-200 border-t-blue-600 dark:border-gray-700 dark:border-t-blue-500`}></div>
+      {size === 'large' && (
+        <p className="mt-3 text-gray-600 dark:text-gray-400">Loading content...</p>
+      )}
     </div>
   );
 } 

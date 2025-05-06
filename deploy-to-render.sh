@@ -1,66 +1,36 @@
 #!/bin/bash
 
-# Exit on error
-set -e
+# Script to deploy Newspaper.AI to Render
+# This script assumes you have the Render CLI installed and authenticated
+# Usage: ./deploy-to-render.sh
 
-# Config variables
-RENDER_API_KEY="your-render-api-key"
-RENDER_SERVICE_ID="your-render-service-id"
-RENDER_HOST="pwn-project"
-RENDER_PORT=10000
-
-# Colors for output
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[0;33m'
-NC='\033[0m' # No Color
-
-echo -e "${YELLOW}==== Newspaper.AI Deployment to Render ====${NC}"
-
-# Check if Render CLI is available
-if ! command -v render &> /dev/null; then
-    echo -e "${RED}Render CLI not found. You might need to install it first.${NC}"
-    echo "Try: curl -s https://render.com/download-cli/stable | bash"
-    exit 1
-fi
-
-# Check if GitHub CLI is available
-if ! command -v gh &> /dev/null; then
-    echo -e "${RED}GitHub CLI not found. You might need to install it first.${NC}"
-    echo "Try: brew install gh"
-    exit 1
-fi
-
-# Check connection to Render instance
-echo -e "${YELLOW}Checking connection to Render instance at ${RENDER_HOST}:${RENDER_PORT}...${NC}"
-if ! ping -c 1 ${RENDER_HOST} &> /dev/null; then
-    echo -e "${RED}Cannot connect to Render instance at ${RENDER_HOST}.${NC}"
-    echo "Please make sure the host is reachable and update the script if needed."
-    exit 1
-fi
+echo "Starting deployment of Newspaper.AI to Render..."
 
 # Build the application
-echo -e "${YELLOW}Building the application...${NC}"
+echo "Building application..."
 npm run build
 
-# Deploy to Render
-echo -e "${YELLOW}Deploying to Render...${NC}"
-if [ -f "render.yaml" ]; then
-    echo -e "${GREEN}Using render.yaml for deployment...${NC}"
-    # Assuming Render CLI has a deploy command
-    render deploy --api-key ${RENDER_API_KEY} --service-id ${RENDER_SERVICE_ID} --host ${RENDER_HOST} --port ${RENDER_PORT}
-else
-    echo -e "${RED}render.yaml not found. Using direct API call...${NC}"
-    # Fallback to direct API call if render.yaml is not available
-    curl -X POST "https://${RENDER_HOST}:${RENDER_PORT}/api/v1/services/${RENDER_SERVICE_ID}/deploys" \
-        -H "Authorization: Bearer ${RENDER_API_KEY}" \
-        -H "Content-Type: application/json"
+if [ $? -ne 0 ]; then
+  echo "Build failed! Aborting deployment."
+  exit 1
 fi
 
-# Verify deployment
-echo -e "${YELLOW}Verifying deployment...${NC}"
-echo -e "${GREEN}Deployment process initiated successfully!${NC}"
-echo "Please check the Render dashboard for deployment status."
-echo "Once deployed, your site will be available at your Render URL."
+echo "Build successful!"
 
-echo -e "${YELLOW}==== Deployment process completed ====${NC}" 
+# Create a Render service if it doesn't exist
+SERVICE_NAME="newspaper-ai"
+SERVICE_EXISTS=$(render service list | grep $SERVICE_NAME || echo "")
+
+if [ -z "$SERVICE_EXISTS" ]; then
+  echo "Creating new Render service: $SERVICE_NAME"
+  render services create
+else
+  echo "Service $SERVICE_NAME already exists, deploying new version..."
+fi
+
+# Deploy to Render
+echo "Deploying to Render..."
+render deploy $SERVICE_NAME
+
+echo "Deployment complete! Your app should be available in a few minutes."
+echo "Visit: https://dashboard.render.com/web/$SERVICE_NAME to check status." 

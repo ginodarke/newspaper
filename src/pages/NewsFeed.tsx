@@ -1,257 +1,225 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
-import { getArticles, getUserPreferences, Article } from '../services/news';
-import { enrichArticleWithAI } from '../services/aiSummary';
-import ArticleDetail from '../components/ArticleDetail';
 import ThemeToggle from '../components/ThemeToggle';
 import SearchBar from '../components/SearchBar';
-import { Link, useNavigate } from 'react-router-dom';
+import ArticleCard from '../components/ArticleCard';
+import ArticleDetail from '../components/ArticleDetail';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { useAuth } from '../contexts/AuthContext';
+import { getArticles, getUserPreferences, Article } from '../services/news';
 
 export default function NewsFeed() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [activeCategory, setActiveCategory] = useState('For You');
-  const [expandedArticle, setExpandedArticle] = useState<string | null>(null);
+  const [preferences, setPreferences] = useState<any>(null);
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  const [userPreferences, setUserPreferences] = useState<any>(null);
-  
-  // Categories for the tabs
-  const categories = ['For You', 'Trending', 'Local', 'International', 'National'];
+  const [expandedArticle, setExpandedArticle] = useState<string | null>(null);
+
+  const categories = ['All', 'Technology', 'Business', 'Politics', 'Science', 'Health', 'Sports', 'Entertainment', 'World News'];
   
   // Fetch user preferences
   useEffect(() => {
-    const fetchUserPreferences = async () => {
-      if (!user) return;
-      
+    const fetchPreferences = async () => {
       try {
-        const { preferences } = await getUserPreferences(user.id);
-        setUserPreferences(preferences);
+        if (user) {
+          const prefs = await getUserPreferences(user.id);
+          console.log('User preferences:', prefs);
+          setPreferences(prefs);
+        } else {
+          console.log('No user found, using default preferences');
+          setPreferences({
+            categories: ['Technology', 'Business']
+          });
+        }
       } catch (err) {
-        console.error('Error fetching user preferences:', err);
+        console.error('Error fetching preferences:', err);
+        setPreferences({
+          categories: ['Technology', 'Business']
+        });
       }
     };
     
-    fetchUserPreferences();
+    fetchPreferences();
   }, [user]);
   
-  // Fetch articles
+  // Fetch articles based on active category
   useEffect(() => {
     const fetchArticles = async () => {
       setLoading(true);
-      setError(null);
+      setError('');
       
       try {
-        // Get articles based on the active category and user preferences
-        const fetchedArticles = await getArticles(userPreferences || undefined);
+        // Fake delay to show loading spinner
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Enrich articles with AI if user is logged in
-        if (user && userPreferences) {
-          const enrichPromises = fetchedArticles.map(article => 
-            enrichArticleWithAI(article, userPreferences)
-          );
-          
-          const enrichedArticles = await Promise.all(enrichPromises);
-          setArticles(enrichedArticles);
-        } else {
-          setArticles(fetchedArticles);
-        }
+        const category = activeCategory === 'All' ? null : activeCategory;
+        const data = await getArticles(category);
+        setArticles(data);
       } catch (err: any) {
+        setError(err.message || 'Failed to fetch articles');
         console.error('Error fetching articles:', err);
-        setError('Failed to load articles. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
     
-    fetchArticles();
-  }, [user, activeCategory, userPreferences]); // Refetch when user, category, or preferences change
-
+    // Only fetch if preferences are loaded
+    if (preferences) {
+      fetchArticles();
+    }
+  }, [activeCategory, preferences]);
+  
+  const handleCategoryChange = (category: string) => {
+    setActiveCategory(category);
+  };
+  
+  const handleProfileClick = () => {
+    navigate('/profile');
+  };
+  
   const handleArticleClick = (article: Article) => {
     setSelectedArticle(article);
   };
   
-  const handleSearch = (query: string) => {
-    navigate(`/search?q=${encodeURIComponent(query)}`);
+  const handleCloseArticle = () => {
+    setSelectedArticle(null);
+  };
+  
+  const handleExpandClick = (articleId: string) => {
+    setExpandedArticle(expandedArticle === articleId ? null : articleId);
   };
   
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 transition-colors duration-200">
-        <div className="container mx-auto px-4 py-4">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
+      <header className="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-primary dark:text-white">Newspaper.AI</h1>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              <h1 className="text-2xl font-bold tracking-tight text-blue-600 dark:text-blue-400">
+                NewspaperAI
+              </h1>
+              <span className="bg-blue-100 text-blue-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
+                Beta
+              </span>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <SearchBar onSearch={(query) => navigate(`/search?q=${query}`)} />
               <ThemeToggle />
-              
-              {user ? (
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-300">Welcome back</span>
-                  <Link 
-                    to="/profile" 
-                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    title="Go to Profile"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </Link>
-                </div>
-              ) : (
-                <Link to="/auth" className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                  </svg>
-                </Link>
-              )}
+              <button
+                onClick={handleProfileClick}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:text-blue-300 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </button>
             </div>
           </div>
           
-          {/* Search Bar */}
-          <div className="mt-4 mb-4">
-            <SearchBar onSearch={handleSearch} />
-          </div>
-          
-          {/* Category Tabs */}
-          <div className="flex overflow-x-auto space-x-4 pb-2">
-            {categories.map(category => (
-              <button
-                key={category}
-                onClick={() => setActiveCategory(category)}
-                className={`px-4 py-2 rounded-md whitespace-nowrap transition-colors ${
-                  activeCategory === category
-                    ? 'bg-primary text-white'
-                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
+          {/* Category tabs */}
+          <div className="mt-4 overflow-x-auto hide-scrollbar">
+            <div className="flex space-x-2 pb-1">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => handleCategoryChange(category)}
+                  className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    activeCategory === category
+                      ? 'bg-blue-500 text-white shadow-sm dark:bg-blue-600'
+                      : 'bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </header>
       
-      {/* News Feed */}
-      <main className="container mx-auto px-4 py-6">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="w-12 h-12 border-t-2 border-primary border-solid rounded-full animate-spin"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-300">Loading articles...</p>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Loading state */}
+        {loading && (
+          <div className="flex justify-center items-center py-20">
+            <LoadingSpinner size="large" />
           </div>
-        ) : error ? (
-          <div className="p-6 bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-300 rounded-lg text-center">
-            <p>{error}</p>
-            <button 
-              onClick={() => setActiveCategory(activeCategory)} 
-              className="mt-4 px-4 py-2 bg-primary text-white rounded-md"
-            >
-              Try Again
-            </button>
+        )}
+        
+        {/* Error state */}
+        {error && !loading && (
+          <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-300 rounded-lg p-4 my-4">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path>
+              </svg>
+              <span>{error}</span>
+            </div>
           </div>
-        ) : articles.length === 0 ? (
-          <div className="p-6 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-lg text-center">
-            <p>No articles found for this category.</p>
+        )}
+        
+        {/* Empty state */}
+        {!loading && !error && articles.length === 0 && (
+          <div className="text-center py-20">
+            <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1M19 20a2 2 0 002-2V8a2 2 0 00-2-2h-5a2 2 0 00-2 2v10a2 2 0 002 2h5zM2 10h8" />
+            </svg>
+            <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-gray-100">No articles found</h3>
+            <p className="mt-1 text-gray-500 dark:text-gray-400">Try selecting a different category or updating your preferences.</p>
           </div>
-        ) : (
-          <div className="space-y-6">
-            {articles.map(article => (
-              <motion.div
-                key={article.id}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-colors duration-200"
-              >
-                <div 
-                  className="cursor-pointer"
-                  onClick={() => handleArticleClick(article)}
+        )}
+        
+        {/* Articles grid */}
+        {!loading && !error && articles.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence>
+              {articles.map((article) => (
+                <motion.div
+                  key={article.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  {article.imageUrl && (
-                    <img
-                      src={article.imageUrl}
-                      alt={article.title}
-                      className="w-full h-48 object-cover"
-                    />
-                  )}
-                </div>
-                
-                <div className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div 
-                      className="cursor-pointer"
-                      onClick={() => handleArticleClick(article)}
-                    >
-                      <h2 className="text-xl font-bold hover:text-primary dark:hover:text-primary-400">{article.title}</h2>
-                      <div className="flex items-center mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        <span>{article.source}</span>
-                        <span className="mx-2">•</span>
-                        <span>{new Date(article.publishedAt).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                    <span className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 rounded-md">
-                      {article.category}
-                    </span>
-                  </div>
-                  
-                  <p className="mt-3 text-gray-700 dark:text-gray-300">
-                    {article.summary}
-                  </p>
-                  
-                  {article.relevanceReason && (
-                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md text-sm">
-                      <strong>Why this matters to you:</strong> {article.relevanceReason}
-                    </div>
-                  )}
-                  
-                  <div className="mt-4 flex justify-between">
-                    <button
-                      onClick={() => setExpandedArticle(expandedArticle === article.id ? null : article.id)}
-                      className="text-primary dark:text-blue-400 text-sm font-medium hover:underline"
-                    >
-                      {expandedArticle === article.id ? 'Hide context' : 'Show context'}
-                    </button>
-                    
-                    <button 
-                      onClick={() => handleArticleClick(article)}
-                      className="text-primary dark:text-blue-400 text-sm font-medium hover:underline"
-                    >
-                      Read full article
-                    </button>
-                  </div>
-                  
-                  {expandedArticle === article.id && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-md"
-                    >
-                      <h3 className="font-medium mb-2">Additional Context</h3>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
-                        {article.content || 'This topic has been developing over the last few months. Similar events occurred in 2019 and 2021. Experts suggest this could have significant implications for future developments in this field.'}
-                      </p>
-                    </motion.div>
-                  )}
-                </div>
-              </motion.div>
-            ))}
+                  <ArticleCard
+                    article={article}
+                    onClick={() => handleArticleClick(article)}
+                    onExpandClick={() => handleExpandClick(article.id)}
+                    isExpanded={expandedArticle === article.id}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </main>
       
-      {/* Article Detail Modal */}
-      <AnimatePresence>
-        {selectedArticle && (
-          <ArticleDetail 
-            article={selectedArticle} 
-            onClose={() => setSelectedArticle(null)} 
-          />
-        )}
-      </AnimatePresence>
+      {/* Article detail modal */}
+      {selectedArticle && (
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 overflow-y-auto overflow-x-hidden flex items-center justify-center"
+          >
+            <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm" onClick={handleCloseArticle}></div>
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-4xl max-h-[90vh] mx-auto my-8 overflow-hidden rounded-lg shadow-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+            >
+              <ArticleDetail article={selectedArticle} onClose={handleCloseArticle} />
+            </motion.div>
+          </motion.div>
+        </AnimatePresence>
+      )}
     </div>
   );
 } 
