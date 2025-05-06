@@ -5,11 +5,12 @@ declare module '@react-three/fiber' {
   export function useFrame(callback: (state: any) => void): void;
   export function useThree(): { viewport: any };
   
-  export interface Canvas extends React.Component<{
+  export const Canvas: React.FC<{
     shadows?: boolean;
     camera?: any;
     children?: React.ReactNode;
-  }> {}
+    [key: string]: any;
+  }>;
   
   export interface ExtendedColors<T> extends T {}
   export interface NodeProps<T, U> extends T {}
