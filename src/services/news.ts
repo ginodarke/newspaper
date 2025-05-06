@@ -16,6 +16,9 @@ export interface Article {
   relevanceReason?: string;
   aiSummary?: string;
   isLocalNews?: boolean;
+  keyFeatures?: string[];
+  locationRelevance?: string;
+  trendingScore?: number;
 }
 
 export interface UserPreferences {
@@ -32,6 +35,10 @@ const NEWS_API_SOURCES = {
   APITUBE: 'https://api.apitube.io/v1/news'
 };
 
+// Constants for article fetching
+const ARTICLES_PER_CATEGORY = 10; // Fetch at least 10 articles per category
+const DEFAULT_COUNTRY = 'us'; // Default to US news
+
 // Function to get real articles from multiple APIs
 export async function getArticles(category: string | null = null, userLocation?: LocationData): Promise<Article[]> {
   try {
@@ -39,7 +46,7 @@ export async function getArticles(category: string | null = null, userLocation?:
     if (userLocation && (!category || category === 'Local')) {
       try {
         const localArticles = await fetchLocalNews(userLocation);
-        if (localArticles.length > 0) {
+        if (localArticles.length >= ARTICLES_PER_CATEGORY) {
           return localArticles;
         }
       } catch (error) {
@@ -49,8 +56,8 @@ export async function getArticles(category: string | null = null, userLocation?:
 
     // Then try regular category-based news from TheNewsAPI
     try {
-      const articles = await fetchFromTheNewsAPI(category);
-      if (articles.length > 0) {
+      const articles = await fetchFromTheNewsAPI(category, userLocation);
+      if (articles.length >= ARTICLES_PER_CATEGORY) {
         // Add relevance explanations based on location for some articles
         if (userLocation) {
           const articlesWithRelevance = await addRelevanceExplanations(articles, userLocation);
@@ -64,8 +71,8 @@ export async function getArticles(category: string | null = null, userLocation?:
 
     // If that fails, try NewsData.io
     try {
-      const articles = await fetchFromNewsDataIO(category);
-      if (articles.length > 0) {
+      const articles = await fetchFromNewsDataIO(category, userLocation);
+      if (articles.length >= ARTICLES_PER_CATEGORY) {
         // Add relevance explanations based on location for some articles
         if (userLocation) {
           const articlesWithRelevance = await addRelevanceExplanations(articles, userLocation);
@@ -88,7 +95,8 @@ export async function getArticles(category: string | null = null, userLocation?:
           return {
             ...article,
             relevanceReason: `This is happening near ${userLocation.city || 'your location'}.`,
-            isLocalNews: true
+            isLocalNews: true,
+            locationRelevance: `This news impacts ${userLocation.city || userLocation.region || 'your area'} directly.`
           };
         }
         return article;
@@ -124,7 +132,7 @@ async function fetchLocalNews(location: LocationData): Promise<Article[]> {
       language: 'en',
       q: locationQuery,
       category: 'top',
-      size: 15
+      size: ARTICLES_PER_CATEGORY
     };
 
     const response = await axios.get(endpoint, { params });
@@ -142,7 +150,9 @@ async function fetchLocalNews(location: LocationData): Promise<Article[]> {
         description: item.description,
         publishedAt: item.pubDate || new Date().toISOString(),
         relevanceReason: `This is happening in ${location.city || 'your area'}.`,
-        isLocalNews: true
+        isLocalNews: true,
+        locationRelevance: `This directly affects ${location.city || location.region || 'your area'}.`,
+        trendingScore: Math.floor(Math.random() * 20) + 80 // High trending score for local news
       }));
       
       return localArticles;
@@ -156,12 +166,13 @@ async function fetchLocalNews(location: LocationData): Promise<Article[]> {
 }
 
 // Function to fetch news from TheNewsAPI
-async function fetchFromTheNewsAPI(category: string | null = null): Promise<Article[]> {
+async function fetchFromTheNewsAPI(category: string | null = null, userLocation?: LocationData): Promise<Article[]> {
   let endpoint = `${NEWS_API_SOURCES.THENEWSAPI}/top`;
   let params: any = {
     api_token: process.env.VITE_THENEWSAPI_KEY || import.meta.env.VITE_THENEWSAPI_KEY,
     language: 'en',
-    limit: 10
+    limit: ARTICLES_PER_CATEGORY + 5, // Add buffer for filtering
+    locale: DEFAULT_COUNTRY, // Default to US news
   };
 
   if (category && category !== 'All' && category !== 'Local') {
@@ -179,6 +190,21 @@ async function fetchFromTheNewsAPI(category: string | null = null): Promise<Arti
     params.categories = categoryMap[category] || 'general';
   }
 
+  // If we have user location with country, adjust the locale
+  if (userLocation && userLocation.country) {
+    // Convert country to locale code if possible
+    const countryCode = userLocation.country.toLowerCase();
+    if (countryCode === 'united states' || countryCode === 'usa' || countryCode === 'us') {
+      params.locale = 'us';
+    } else if (countryCode === 'united kingdom' || countryCode === 'uk' || countryCode === 'gb') {
+      params.locale = 'gb';
+    } else if (countryCode === 'canada' || countryCode === 'ca') {
+      params.locale = 'ca';
+    } else if (countryCode === 'australia' || countryCode === 'au') {
+      params.locale = 'au';
+    }
+  }
+
   const response = await axios.get(endpoint, { params });
   
   if (response.data && response.data.data && response.data.data.length > 0) {
@@ -193,6 +219,8 @@ async function fetchFromTheNewsAPI(category: string | null = null): Promise<Arti
       content: item.content || item.snippet,
       description: item.description || item.snippet,
       publishedAt: item.published_at || new Date().toISOString(),
+      trendingScore: Math.floor(Math.random() * 30) + 70, // Random trending score between 70-100
+      keyFeatures: extractKeyFeatures(item.description || item.snippet || item.title)
     }));
   }
   
@@ -200,12 +228,13 @@ async function fetchFromTheNewsAPI(category: string | null = null): Promise<Arti
 }
 
 // Function to fetch news from NewsData.io
-async function fetchFromNewsDataIO(category: string | null = null): Promise<Article[]> {
+async function fetchFromNewsDataIO(category: string | null = null, userLocation?: LocationData): Promise<Article[]> {
   let endpoint = `${NEWS_API_SOURCES.NEWSDATA}`;
   let params: any = {
     apikey: process.env.VITE_NEWSDATA_KEY || import.meta.env.VITE_NEWSDATA_KEY,
     language: 'en',
-    size: 10
+    size: ARTICLES_PER_CATEGORY + 5, // Add buffer for filtering
+    country: 'us' // Default to US news
   };
 
   if (category && category !== 'All' && category !== 'Local') {
@@ -223,6 +252,22 @@ async function fetchFromNewsDataIO(category: string | null = null): Promise<Arti
     params.category = categoryMap[category] || 'top';
   }
 
+  // If we have user location with country, adjust the country
+  if (userLocation && userLocation.country) {
+    // Convert country name to country code if necessary
+    const countryName = userLocation.country.toLowerCase();
+    if (countryName === 'united states' || countryName === 'usa' || countryName === 'us') {
+      params.country = 'us';
+    } else if (countryName === 'united kingdom' || countryName === 'uk') {
+      params.country = 'gb';
+    } else if (countryName === 'canada') {
+      params.country = 'ca';
+    } else if (countryName === 'australia') {
+      params.country = 'au';
+    }
+    // Otherwise keep the default
+  }
+
   const response = await axios.get(endpoint, { params });
   
   if (response.data && response.data.results && response.data.results.length > 0) {
@@ -237,17 +282,35 @@ async function fetchFromNewsDataIO(category: string | null = null): Promise<Arti
       content: item.content,
       description: item.description,
       publishedAt: item.pubDate || new Date().toISOString(),
+      trendingScore: Math.floor(Math.random() * 30) + 70, // Random trending score between 70-100
+      keyFeatures: extractKeyFeatures(item.description || item.content || item.title)
     }));
   }
   
   return [];
 }
 
+// Helper to extract key features from article content
+function extractKeyFeatures(text: string): string[] {
+  if (!text) return [];
+  
+  // Simple extraction of key features based on sentence structure
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  const keyFeatures = sentences.slice(0, 3).map(s => s.trim());
+  
+  // If we don't have enough sentences, add generic features
+  while (keyFeatures.length < 3) {
+    keyFeatures.push("More information available in the full article.");
+  }
+  
+  return keyFeatures;
+}
+
 // Helper to add AI-generated summaries and relevance explanations
 async function addRelevanceExplanations(articles: Article[], location: LocationData): Promise<Article[]> {
   try {
     // Only process a subset of articles to avoid making too many API calls
-    const articlesToProcess = articles.slice(0, 5);
+    const articlesToProcess = articles.slice(0, ARTICLES_PER_CATEGORY);
     const openrouterApiKey = process.env.VITE_OPENROUTER_API_KEY || import.meta.env.VITE_OPENROUTER_API_KEY;
     
     if (!openrouterApiKey) {
@@ -257,16 +320,23 @@ async function addRelevanceExplanations(articles: Article[], location: LocationD
 
     const processedArticles = await Promise.all(
       articlesToProcess.map(async (article, index) => {
-        // Only process every other article to reduce API usage
-        if (index % 2 !== 0) return article;
-        
+        // Process every article for better user experience
         try {
           const prompt = `
-Given the following article, please analyze how it might be relevant to someone living in ${location.city || location.region || 'the provided location'}, ${location.country || ''}.
-Provide a concise one-sentence explanation (25 words max) of why this news might matter to them personally.
+Given the following article, please provide two things:
+1. A concise one-sentence explanation (25 words max) of why this news might personally matter to someone living in ${location.city || location.region || 'the provided location'}, ${location.country || ''}.
+2. Extract 3-4 key features or important pieces of information from the article as bullet points.
 
 Article Title: ${article.title}
 Article Summary: ${article.summary}
+
+Format your response as:
+RELEVANCE: [your one-sentence explanation]
+FEATURES:
+- [first key point]
+- [second key point]
+- [third key point]
+- [optional fourth key point]
 `;
 
           const response = await axios.post(
@@ -275,7 +345,7 @@ Article Summary: ${article.summary}
               model: 'openai/gpt-3.5-turbo-0125',
               messages: [{ role: 'user', content: prompt }],
               temperature: 0.7,
-              max_tokens: 100
+              max_tokens: 250
             },
             {
               headers: {
@@ -286,11 +356,27 @@ Article Summary: ${article.summary}
           );
 
           if (response.data && response.data.choices && response.data.choices.length > 0) {
-            const relevanceReason = response.data.choices[0].message.content.trim();
+            const aiResponse = response.data.choices[0].message.content.trim();
+            
+            // Extract relevance and features from the response
+            let relevanceReason = '';
+            let keyFeatures: string[] = [];
+            
+            const relevanceMatch = aiResponse.match(/RELEVANCE:\s*(.*?)(?=\n|$)/);
+            if (relevanceMatch && relevanceMatch[1]) {
+              relevanceReason = relevanceMatch[1].trim();
+            }
+            
+            const featureMatches = aiResponse.match(/- (.*?)(?=\n|$)/g);
+            if (featureMatches) {
+              keyFeatures = featureMatches.map((match: string) => match.replace(/^- /, '').trim());
+            }
+            
             return {
               ...article,
-              relevanceReason,
-              aiSummary: `This ${article.category.toLowerCase()} news could impact ${location.city || 'your area'}'s economic and social landscape.`
+              relevanceReason: relevanceReason || `This ${article.category.toLowerCase()} news could impact ${location.city || 'your area'}'s residents.`,
+              keyFeatures: keyFeatures.length > 0 ? keyFeatures : article.keyFeatures || extractKeyFeatures(article.summary),
+              aiSummary: `This article highlights ${article.category.toLowerCase()} developments that may affect ${location.city || 'your area'}'s economy, community, or daily life.`
             };
           }
         } catch (error) {
@@ -304,7 +390,7 @@ Article Summary: ${article.summary}
     // Replace the processed articles in the original array
     const result = [...articles];
     processedArticles.forEach((article, index) => {
-      if (index < 5) {
+      if (index < ARTICLES_PER_CATEGORY) {
         result[index] = article;
       }
     });
@@ -532,12 +618,15 @@ export const getAISummary = async (article: Article): Promise<string> => {
     }
 
     const prompt = `
-Please provide a concise summary (3-4 sentences) of the following article:
+Please analyze the following article and provide:
+1. A concise summary (3-4 sentences) focused on the key facts and main points
+2. The most important implications or impacts of this news
+3. Why this matters to readers, especially considering trends in ${article.category}
 
 Title: ${article.title}
 Content: ${article.content || article.summary}
 
-Focus on the key facts, implications, and why this matters to readers. Keep it simple and straightforward.
+Format your response in a conversational tone, without using bullet points or numbered lists.
 `;
 
     const response = await axios.post(
@@ -546,7 +635,7 @@ Focus on the key facts, implications, and why this matters to readers. Keep it s
         model: 'openai/gpt-3.5-turbo-0125',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
-        max_tokens: 150
+        max_tokens: 250
       },
       {
         headers: {

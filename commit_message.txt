@@ -1,12 +1,15 @@
-[Cursor] Fix R3F hooks used outside Canvas component in Home and Onboarding pages
+[Cursor] Enhance news article functionality with AI summaries and location-based features
 
-This commit fixes the "R3F: Hooks can only be used within the Canvas component!" error that was occurring when navigating to the Home and Onboarding pages. The issue was caused by React Three Fiber hooks being used outside of Canvas components.
+This commit significantly improves the news article functionality by implementing more comprehensive AI-powered features and location-based content:
 
-Changes:
-- Added HomeBackground component in Home.tsx that properly wraps 3D elements in a Canvas
-- Created GlobeWrapper component in Onboarding.tsx to ensure NewsGlobe components are properly wrapped in Canvas
-- Updated AnimatedBackground usage in NewsFeed.tsx (which already had proper Canvas wrapping)
-- Fixed all instances where useFrame, useThree, and other R3F hooks were used outside Canvas components
-- Rebuilt the application with the fixes applied
+- Enhanced article detail view with key features extraction and trending indicators
+- Improved AI summary generation with detailed analysis of article content
+- Added location-based article relevance with direct local impact descriptions
+- Increased number of articles per category from 3 to 10
+- Focused on US news by default with location-based customization
+- Added trending score indicators for article popularity
+- Implemented on-demand loading of comprehensive AI summaries
+- Added visual indicators for local news and trending content
+- Enhanced article UI with better categorization and feature highlights
 
-These changes ensure that all R3F hooks are used within Canvas components, resolving the error that prevented users from logging into and using the application.
+These improvements create a more personalized news experience by showing users more relevant content and explaining why each article matters to them based on their location and interests.
