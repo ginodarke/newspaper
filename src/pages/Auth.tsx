@@ -1,6 +1,23 @@
 import { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+import { NewspaperModel } from '../components/3DElements';
+
+// Separate component for 3D elements to ensure they're inside a Canvas
+function AuthBackground() {
+  return (
+    <div className="fixed top-0 left-0 w-full h-full -z-10">
+      <Canvas>
+        <ambientLight intensity={0.5} />
+        <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
+        <NewspaperModel position={[2, 0, 0]} scale={1.5} />
+        <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} />
+      </Canvas>
+    </div>
+  );
+}
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -35,10 +52,13 @@ export default function Auth() {
   };
   
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
+    <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-b from-blue-50 to-white">
+      {/* Background with 3D elements */}
+      <AuthBackground />
+      
+      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md backdrop-blur-sm bg-opacity-90">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">{isLogin ? 'Sign In' : 'Create Account'}</h1>
+          <h1 className="text-3xl font-bold text-blue-600">{isLogin ? 'Sign In' : 'Create Account'}</h1>
           <p className="mt-2 text-gray-600">
             {isLogin 
               ? 'Sign in to access your personalized news' 
@@ -64,7 +84,7 @@ export default function Auth() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+              className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="you@example.com"
             />
           </div>
@@ -80,7 +100,7 @@ export default function Auth() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+              className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="••••••••"
             />
           </div>
@@ -89,7 +109,7 @@ export default function Auth() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full px-4 py-2 text-white bg-primary rounded-md hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
             </button>
@@ -99,7 +119,7 @@ export default function Auth() {
         <div className="text-center mt-4">
           <button
             onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-primary hover:underline"
+            className="text-sm text-blue-600 hover:underline"
           >
             {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
           </button>

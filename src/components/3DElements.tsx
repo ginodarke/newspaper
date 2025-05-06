@@ -140,18 +140,6 @@ export function NewsGlobe({
   );
 }
 
-// Animated background with particles
-export function AnimatedBackground() {
-  return (
-    <Canvas>
-      <color attach="background" args={['#050505']} />
-      <fog attach="fog" args={['#050505', 10, 20]} />
-      <ParticleField />
-      <OrbitControls enableZoom={false} enablePan={false} />
-    </Canvas>
-  );
-}
-
 // A field of particles that rotate
 function ParticleField() {
   const { viewport } = useThree();
@@ -196,5 +184,19 @@ function ParticleField() {
         opacity={0.8}
       />
     </points>
+  );
+}
+
+// Animated background with particles - this version safely wraps the particle field in its own Canvas
+export function AnimatedBackground() {
+  return (
+    <div className="fixed top-0 left-0 w-full h-full -z-10 opacity-10 pointer-events-none">
+      <Canvas>
+        <color attach="background" args={['#050505']} />
+        <fog attach="fog" args={['#050505', 10, 20]} />
+        <ParticleField />
+        <OrbitControls enableZoom={false} enablePan={false} />
+      </Canvas>
+    </div>
   );
 } 

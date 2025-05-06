@@ -1,10 +1,11 @@
-[Cursor] Fix React import and Canvas component TypeScript errors
+[Cursor] Fix R3F hooks used outside Canvas component
 
-- Added allowSyntheticDefaultImports flag to tsconfig.json
-- Fixed Canvas component declaration in react-three-declarations.d.ts
-- Updated main.tsx to use proper React import syntax
-- Fixed createRoot import from react-dom/client
-- Added improved error handling for root element detection
-- Fixed TypeScript errors related to React default imports
-- Resolved TypeScript errors on Canvas component usage
+This commit fixes the error "R3F: Hooks can only be used within the Canvas component!" that was occurring on the login page. The issue was caused by React Three Fiber hooks being used outside of a Canvas component context.
 
+Changes:
+- Added AuthBackground component in Auth.tsx that properly wraps 3D elements in a Canvas
+- Fixed AnimatedBackground component to ensure it has its own Canvas wrapper
+- Ensured all useFrame and useThree hooks are used within Canvas components
+- Improved component organization and styling to maintain visual aesthetics
+
+These changes resolve the error that prevented users from logging into the application while preserving the 3D visual elements that enhance the user experience.
