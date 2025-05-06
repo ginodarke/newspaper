@@ -1,13 +1,12 @@
-[Cursor] Create simplified deployment guide for Render
+[Cursor] Fix R3F hooks used outside Canvas component in Home and Onboarding pages
 
-This commit adds a streamlined deployment guide for the Newspaper.AI application on Render. The guide provides clear step-by-step instructions for setting up and monitoring the deployment.
+This commit fixes the "R3F: Hooks can only be used within the Canvas component!" error that was occurring when navigating to the Home and Onboarding pages. The issue was caused by React Three Fiber hooks being used outside of Canvas components.
 
 Changes:
-- Created RENDER_DEPLOY.md with simplified deployment instructions
-- Successfully built the application for production deployment
-- Added environment variable documentation for Supabase, OpenRouter, and News APIs
-- Included troubleshooting tips for common deployment issues
-- Documented post-deployment verification steps
-- Added note confirming R3F hooks issue has been resolved
+- Added HomeBackground component in Home.tsx that properly wraps 3D elements in a Canvas
+- Created GlobeWrapper component in Onboarding.tsx to ensure NewsGlobe components are properly wrapped in Canvas
+- Updated AnimatedBackground usage in NewsFeed.tsx (which already had proper Canvas wrapping)
+- Fixed all instances where useFrame, useThree, and other R3F hooks were used outside Canvas components
+- Rebuilt the application with the fixes applied
 
-The application is now ready for production deployment on Render.
+These changes ensure that all R3F hooks are used within Canvas components, resolving the error that prevented users from logging into and using the application.

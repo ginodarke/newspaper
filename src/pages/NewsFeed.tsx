@@ -127,7 +127,7 @@ export default function NewsFeed() {
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
-      {/* Animated Background */}
+      {/* Animated Background - this component already has its own Canvas wrapper in 3DElements.tsx */}
       <AnimatedBackground />
       
       <header className="sticky top-0 z-10 bg-white dark:bg-gray-800 shadow-md border-b border-gray-200 dark:border-gray-700 backdrop-blur-md bg-opacity-90 dark:bg-opacity-90">

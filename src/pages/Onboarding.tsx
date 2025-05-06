@@ -5,7 +5,23 @@ import { useAuth } from '../contexts/AuthContext';
 import { saveUserPreferences } from '../services/news';
 import { createProfile } from '../services/supabase';
 import { getCurrentLocation, getAddressFromCoordinates, LocationData, formatLocationForDisplay } from '../services/location';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import { NewsGlobe } from '../components/3DElements';
+
+// Component to properly wrap the NewsGlobe in Canvas
+function GlobeWrapper({ size = "medium" }: { size?: "small" | "medium" | "large" | number }) {
+  return (
+    <div className={`relative ${size === "small" ? "h-24 w-24" : size === "medium" ? "h-40 w-40" : "h-52 w-52"} mx-auto`}>
+      <Canvas>
+        <ambientLight intensity={0.5} />
+        <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
+        <NewsGlobe size={size} />
+        <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} />
+      </Canvas>
+    </div>
+  );
+}
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -252,7 +268,7 @@ export default function Onboarding() {
               className="flex justify-center mt-6"
               variants={itemVariants}
             >
-              <NewsGlobe size="small" />
+              <GlobeWrapper size="small" />
             </motion.div>
           </motion.div>
         )}
@@ -346,9 +362,7 @@ export default function Onboarding() {
               className="flex justify-center mt-4"
               variants={itemVariants}
             >
-              <div className="relative h-40 w-40">
-                <NewsGlobe size="medium" />
-              </div>
+              <GlobeWrapper size="medium" />
             </motion.div>
           </motion.div>
         )}
@@ -371,7 +385,7 @@ export default function Onboarding() {
               className="flex justify-center py-4"
               variants={itemVariants}
             >
-              <NewsGlobe size="large" />
+              <GlobeWrapper size="large" />
             </motion.div>
             
             <motion.p 
