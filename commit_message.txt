@@ -1,0 +1,1 @@
+[Cursor] Initial commit - Newspaper.AI application
