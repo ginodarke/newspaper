@@ -1,11 +1,13 @@
-[Cursor] Fix R3F hooks used outside Canvas component
+[Cursor] Create simplified deployment guide for Render
 
-This commit fixes the error "R3F: Hooks can only be used within the Canvas component!" that was occurring on the login page. The issue was caused by React Three Fiber hooks being used outside of a Canvas component context.
+This commit adds a streamlined deployment guide for the Newspaper.AI application on Render. The guide provides clear step-by-step instructions for setting up and monitoring the deployment.
 
 Changes:
-- Added AuthBackground component in Auth.tsx that properly wraps 3D elements in a Canvas
-- Fixed AnimatedBackground component to ensure it has its own Canvas wrapper
-- Ensured all useFrame and useThree hooks are used within Canvas components
-- Improved component organization and styling to maintain visual aesthetics
+- Created RENDER_DEPLOY.md with simplified deployment instructions
+- Successfully built the application for production deployment
+- Added environment variable documentation for Supabase, OpenRouter, and News APIs
+- Included troubleshooting tips for common deployment issues
+- Documented post-deployment verification steps
+- Added note confirming R3F hooks issue has been resolved
 
-These changes resolve the error that prevented users from logging into the application while preserving the 3D visual elements that enhance the user experience.
+The application is now ready for production deployment on Render.
