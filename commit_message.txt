@@ -10,3 +10,13 @@
 - Fixed multiple TypeScript issues and linting errors
 - Configured application for Render deployment
 - Added server.js for serving the built application
+
+[Cursor] Add real news API integration
+
+- Integrated real news articles from multiple sources (TheNewsAPI, NewsData.io)
+- Updated news service to fetch live articles based on selected category
+- Added fallback to mock data when APIs are unavailable
+- Enhanced article search to use real news APIs
+- Added category mapping for consistent news categorization
+- Updated deployment documentation with News API key instructions
+- Implemented error handling for API failures

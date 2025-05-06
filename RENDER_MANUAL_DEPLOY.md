@@ -7,6 +7,16 @@ Since the Render CLI is not available, follow these steps to manually deploy the
 1. A Render account (create one at https://render.com if you don't have one)
 2. The built application (we've already run `npm run build`)
 3. Access to the Supabase and OpenRouter API keys
+4. At least one News API key (TheNewsAPI, NewsData.io, NewsAPI.org, or ApiTube)
+
+## Obtaining News API Keys
+
+To get real news articles working in the application, you'll need to obtain at least one of the following API keys:
+
+1. **TheNewsAPI**: Sign up at https://www.thenewsapi.com/ (free tier available)
+2. **NewsData.io**: Sign up at https://newsdata.io/ (free tier available)
+3. **NewsAPI.org**: Sign up at https://newsapi.org/ (free tier available for development)
+4. **ApiTube**: Sign up at https://apitube.io/ (free tier available)
 
 ## Deployment Steps
 
@@ -41,6 +51,14 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 VITE_OPENROUTER_API_KEY=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
 ```
 
+**Add at least one of these News API keys:**
+```
+VITE_THENEWSAPI_KEY=your_api_key_here
+VITE_NEWSDATA_KEY=your_api_key_here
+VITE_NEWSAPI_KEY=your_api_key_here
+VITE_APITUBE_KEY=your_api_key_here
+```
+
 ### 4. Create Web Service
 
 Click "Create Web Service" to start the deployment process.
@@ -66,14 +84,19 @@ Once deployed, your application will be available at the URL provided by Render:
 - Verify that all environment variables are correctly set
 - Ensure the start command is correct for your application
 
+### If news articles aren't loading
+- Verify that you've added at least one News API key to your environment variables
+- Check the browser console for API errors, which might indicate rate limiting or subscription issues
+- Try adding a different News API key if one is not working
+
 ## Post-Deployment
 
 After successful deployment:
 
 1. **Test Authentication**: Try signing up and logging in to ensure Supabase integration works
 2. **Test Onboarding Flow**: Complete the onboarding process to verify it works properly
-3. **Verify News Feed**: Check that articles load and display correctly
+3. **Verify News Feed**: Check that articles load and display correctly from real news sources
 4. **Test Dark Mode**: Ensure the theme toggle works properly
-5. **Verify Search**: Test the search functionality
+5. **Verify Search**: Test the search functionality with real search queries
 
 If everything works as expected, your Newspaper.AI application is successfully deployed and ready to use! 
