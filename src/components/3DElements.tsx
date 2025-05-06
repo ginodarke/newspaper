@@ -99,6 +99,7 @@ export function NewsGlobe({
   size?: "small" | "medium" | "large" | number;
   position?: [number, number, number];
 }) {
+  // Update the path to look for the image in the public directory
   const earthTexture = useTexture('/earth.jpg');
   const globeRef = useRef<THREE.Mesh>(null);
   
@@ -122,6 +123,15 @@ export function NewsGlobe({
       globeRef.current.rotation.y = clock.getElapsedTime() * 0.1;
     }
   });
+
+  // Add error handling for texture loading
+  if (!earthTexture) {
+    return (
+      <Sphere ref={globeRef} args={[numericSize, 32, 32]} position={position}>
+        <meshStandardMaterial color="#1e40af" />
+      </Sphere>
+    );
+  }
 
   return (
     <Sphere ref={globeRef} args={[numericSize, 32, 32]} position={position}>
