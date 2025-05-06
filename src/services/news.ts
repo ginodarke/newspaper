@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import axios from 'axios';
+import { LocationData, parseLocationString } from './location';
 
 export interface Article {
   id: string;
@@ -13,6 +14,8 @@ export interface Article {
   description?: string;
   publishedAt: string;
   relevanceReason?: string;
+  aiSummary?: string;
+  isLocalNews?: boolean;
 }
 
 export interface UserPreferences {
@@ -30,12 +33,29 @@ const NEWS_API_SOURCES = {
 };
 
 // Function to get real articles from multiple APIs
-export async function getArticles(category: string | null = null): Promise<Article[]> {
+export async function getArticles(category: string | null = null, userLocation?: LocationData): Promise<Article[]> {
   try {
-    // First, try to get articles from the TheNewsAPI
+    // Try location-based news first if we have user location and category is null or 'local'
+    if (userLocation && (!category || category === 'Local')) {
+      try {
+        const localArticles = await fetchLocalNews(userLocation);
+        if (localArticles.length > 0) {
+          return localArticles;
+        }
+      } catch (error) {
+        console.error('Error fetching local news:', error);
+      }
+    }
+
+    // Then try regular category-based news from TheNewsAPI
     try {
       const articles = await fetchFromTheNewsAPI(category);
       if (articles.length > 0) {
+        // Add relevance explanations based on location for some articles
+        if (userLocation) {
+          const articlesWithRelevance = await addRelevanceExplanations(articles, userLocation);
+          return articlesWithRelevance;
+        }
         return articles;
       }
     } catch (error) {
@@ -46,6 +66,11 @@ export async function getArticles(category: string | null = null): Promise<Artic
     try {
       const articles = await fetchFromNewsDataIO(category);
       if (articles.length > 0) {
+        // Add relevance explanations based on location for some articles
+        if (userLocation) {
+          const articlesWithRelevance = await addRelevanceExplanations(articles, userLocation);
+          return articlesWithRelevance;
+        }
         return articles;
       }
     } catch (error) {
@@ -54,10 +79,79 @@ export async function getArticles(category: string | null = null): Promise<Artic
 
     // If all APIs fail, use mock data as fallback
     console.warn('All news APIs failed, using mock data as fallback');
-    return getFilteredMockArticles(category);
+    let mockArticles = getFilteredMockArticles(category);
+    
+    // Add mock location relevance to mock articles
+    if (userLocation) {
+      mockArticles = mockArticles.map((article, index) => {
+        if (index % 3 === 0) { // Add relevance reasons to every third article
+          return {
+            ...article,
+            relevanceReason: `This is happening near ${userLocation.city || 'your location'}.`,
+            isLocalNews: true
+          };
+        }
+        return article;
+      });
+    }
+    
+    return mockArticles;
   } catch (error) {
     console.error('Error fetching articles:', error);
     return getFilteredMockArticles(category);
+  }
+}
+
+// Function to fetch local news based on user location
+async function fetchLocalNews(location: LocationData): Promise<Article[]> {
+  try {
+    // First try NewsData.io with local query
+    const city = location.city || '';
+    const region = location.region || '';
+    const country = location.country || '';
+    
+    // Create location query
+    const locationQuery = [city, region, country].filter(Boolean).join(' ');
+    
+    // Skip if we don't have enough location data
+    if (!locationQuery) {
+      return [];
+    }
+    
+    const endpoint = `${NEWS_API_SOURCES.NEWSDATA}`;
+    const params: any = {
+      apikey: process.env.VITE_NEWSDATA_KEY || import.meta.env.VITE_NEWSDATA_KEY,
+      language: 'en',
+      q: locationQuery,
+      category: 'top',
+      size: 15
+    };
+
+    const response = await axios.get(endpoint, { params });
+    
+    if (response.data && response.data.results && response.data.results.length > 0) {
+      const localArticles = response.data.results.map((item: any) => ({
+        id: item.article_id || String(Math.random()),
+        title: item.title,
+        category: 'Local',
+        source: item.source_id || 'NewsData.io',
+        url: item.link,
+        imageUrl: item.image_url,
+        summary: item.description || item.content,
+        content: item.content,
+        description: item.description,
+        publishedAt: item.pubDate || new Date().toISOString(),
+        relevanceReason: `This is happening in ${location.city || 'your area'}.`,
+        isLocalNews: true
+      }));
+      
+      return localArticles;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error fetching local news:', error);
+    return [];
   }
 }
 
@@ -70,7 +164,7 @@ async function fetchFromTheNewsAPI(category: string | null = null): Promise<Arti
     limit: 10
   };
 
-  if (category && category !== 'All') {
+  if (category && category !== 'All' && category !== 'Local') {
     const categoryMap: { [key: string]: string } = {
       'Technology': 'tech',
       'Business': 'business',
@@ -114,7 +208,7 @@ async function fetchFromNewsDataIO(category: string | null = null): Promise<Arti
     size: 10
   };
 
-  if (category && category !== 'All') {
+  if (category && category !== 'All' && category !== 'Local') {
     const categoryMap: { [key: string]: string } = {
       'Technology': 'technology',
       'Business': 'business',
@@ -147,6 +241,79 @@ async function fetchFromNewsDataIO(category: string | null = null): Promise<Arti
   }
   
   return [];
+}
+
+// Helper to add AI-generated summaries and relevance explanations
+async function addRelevanceExplanations(articles: Article[], location: LocationData): Promise<Article[]> {
+  try {
+    // Only process a subset of articles to avoid making too many API calls
+    const articlesToProcess = articles.slice(0, 5);
+    const openrouterApiKey = process.env.VITE_OPENROUTER_API_KEY || import.meta.env.VITE_OPENROUTER_API_KEY;
+    
+    if (!openrouterApiKey) {
+      console.warn('OpenRouter API key not found, skipping relevance analysis');
+      return articles;
+    }
+
+    const processedArticles = await Promise.all(
+      articlesToProcess.map(async (article, index) => {
+        // Only process every other article to reduce API usage
+        if (index % 2 !== 0) return article;
+        
+        try {
+          const prompt = `
+Given the following article, please analyze how it might be relevant to someone living in ${location.city || location.region || 'the provided location'}, ${location.country || ''}.
+Provide a concise one-sentence explanation (25 words max) of why this news might matter to them personally.
+
+Article Title: ${article.title}
+Article Summary: ${article.summary}
+`;
+
+          const response = await axios.post(
+            'https://openrouter.ai/api/v1/chat/completions',
+            {
+              model: 'openai/gpt-3.5-turbo-0125',
+              messages: [{ role: 'user', content: prompt }],
+              temperature: 0.7,
+              max_tokens: 100
+            },
+            {
+              headers: {
+                'Authorization': `Bearer ${openrouterApiKey}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+
+          if (response.data && response.data.choices && response.data.choices.length > 0) {
+            const relevanceReason = response.data.choices[0].message.content.trim();
+            return {
+              ...article,
+              relevanceReason,
+              aiSummary: `This ${article.category.toLowerCase()} news could impact ${location.city || 'your area'}'s economic and social landscape.`
+            };
+          }
+        } catch (error) {
+          console.error('Error generating relevance explanation:', error);
+        }
+        
+        return article;
+      })
+    );
+
+    // Replace the processed articles in the original array
+    const result = [...articles];
+    processedArticles.forEach((article, index) => {
+      if (index < 5) {
+        result[index] = article;
+      }
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Error adding relevance explanations:', error);
+    return articles;
+  }
 }
 
 // Helper to map keywords to categories
@@ -183,22 +350,28 @@ function getFilteredMockArticles(category: string | null = null): Article[] {
 }
 
 // Search articles
-export const searchArticles = async (query: string): Promise<Article[]> => {
+export const searchArticles = async (query: string, userLocation?: LocationData): Promise<Article[]> => {
   try {
+    // Add location context to the search if available
+    let locationContext = '';
+    if (userLocation && userLocation.city) {
+      locationContext = ` ${userLocation.city}`;
+    }
+
     // Try to search with TheNewsAPI
     try {
       const endpoint = `${NEWS_API_SOURCES.THENEWSAPI}/all`;
       const params: any = {
         api_token: process.env.VITE_THENEWSAPI_KEY || import.meta.env.VITE_THENEWSAPI_KEY,
         language: 'en',
-        search: query,
+        search: query + locationContext,
         limit: 20
       };
 
       const response = await axios.get(endpoint, { params });
       
       if (response.data && response.data.data && response.data.data.length > 0) {
-        return response.data.data.map((item: any) => ({
+        const articles = response.data.data.map((item: any) => ({
           id: item.uuid || item.id || String(Math.random()),
           title: item.title,
           category: mapCategoryFromKeywords(item.keywords || []),
@@ -210,6 +383,13 @@ export const searchArticles = async (query: string): Promise<Article[]> => {
           description: item.description || item.snippet,
           publishedAt: item.published_at || new Date().toISOString(),
         }));
+        
+        // Add relevance explanations if we have user location
+        if (userLocation) {
+          return await addRelevanceExplanations(articles, userLocation);
+        }
+        
+        return articles;
       }
     } catch (error) {
       console.error('Error searching TheNewsAPI:', error);
@@ -221,14 +401,14 @@ export const searchArticles = async (query: string): Promise<Article[]> => {
       const params: any = {
         apikey: process.env.VITE_NEWSDATA_KEY || import.meta.env.VITE_NEWSDATA_KEY,
         language: 'en',
-        q: query,
+        q: query + locationContext,
         size: 20
       };
 
       const response = await axios.get(endpoint, { params });
       
       if (response.data && response.data.results && response.data.results.length > 0) {
-        return response.data.results.map((item: any) => ({
+        const articles = response.data.results.map((item: any) => ({
           id: item.article_id || String(Math.random()),
           title: item.title,
           category: mapCategoryFromKeywords(item.keywords || []),
@@ -240,6 +420,13 @@ export const searchArticles = async (query: string): Promise<Article[]> => {
           description: item.description,
           publishedAt: item.pubDate || new Date().toISOString(),
         }));
+        
+        // Add relevance explanations if we have user location
+        if (userLocation) {
+          return await addRelevanceExplanations(articles, userLocation);
+        }
+        
+        return articles;
       }
     } catch (error) {
       console.error('Error searching NewsData.io:', error);
@@ -271,6 +458,20 @@ export const searchArticles = async (query: string): Promise<Article[]> => {
   } catch (error) {
     console.error('Error in searchArticles:', error);
     return [];
+  }
+};
+
+// Get user location from preferences
+export const getUserLocationFromPreferences = async (userId: string): Promise<LocationData | null> => {
+  try {
+    const { preferences } = await getUserPreferences(userId);
+    if (preferences && preferences.location) {
+      return parseLocationString(preferences.location);
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting user location from preferences:', error);
+    return null;
   }
 };
 
@@ -318,6 +519,51 @@ export const getUserPreferences = async (userId: string): Promise<{ preferences:
   } catch (error) {
     console.error('Error fetching preferences:', error);
     return { preferences: null, error };
+  }
+};
+
+// Get AI summary for an article
+export const getAISummary = async (article: Article): Promise<string> => {
+  try {
+    const openrouterApiKey = process.env.VITE_OPENROUTER_API_KEY || import.meta.env.VITE_OPENROUTER_API_KEY;
+    
+    if (!openrouterApiKey) {
+      return "AI summary not available. Please add your OpenRouter API key.";
+    }
+
+    const prompt = `
+Please provide a concise summary (3-4 sentences) of the following article:
+
+Title: ${article.title}
+Content: ${article.content || article.summary}
+
+Focus on the key facts, implications, and why this matters to readers. Keep it simple and straightforward.
+`;
+
+    const response = await axios.post(
+      'https://openrouter.ai/api/v1/chat/completions',
+      {
+        model: 'openai/gpt-3.5-turbo-0125',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 150
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${openrouterApiKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.data && response.data.choices && response.data.choices.length > 0) {
+      return response.data.choices[0].message.content.trim();
+    }
+    
+    return "Unable to generate AI summary at this time.";
+  } catch (error) {
+    console.error('Error generating AI summary:', error);
+    return "Error generating AI summary. Please try again later.";
   }
 };
 
