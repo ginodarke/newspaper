@@ -1,23 +1,20 @@
-import { Article } from './news';
+import { Article } from '../types';
 
 // In a real app, this would connect to OpenRouter/OpenAI API
 // For this demo, we'll simulate AI responses
 
 interface AISummaryResponse {
-  summary: string;
-  relevanceScore: number;
+  aiSummary: string;
 }
 
 // Mock function for AI-powered article summary generation
 // In a real app, this would call an AI service like OpenAI or Claude
-export const generateArticleSummary = async (): Promise<AISummaryResponse> => {
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // Mock response
+export const generateArticleSummary = async (article: Article): Promise<AISummaryResponse> => {
+  // Simulate API delay
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
   return {
-    summary: 'This article discusses recent technological advancements and their potential impact on society and the economy.',
-    relevanceScore: Math.random() * 10
+    aiSummary: 'This article discusses recent technological advancements and their potential impact on society and the economy.',
   };
 };
 
