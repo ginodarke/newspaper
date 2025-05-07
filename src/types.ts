@@ -1,17 +1,25 @@
 export interface Article {
   id: string;
   title: string;
-  description?: string;
+  description: string;
   content?: string;
-  summary?: string;
-  url: string;
-  imageUrl?: string;
-  source: string;
+  imageUrl: string;
+  category: string;
   publishedAt: string;
-  category?: string;
+  source: string;
+  url: string;
+  isLocalNews?: boolean;
   relevanceReason?: string;
   aiSummary?: string;
-  aiAnalysis?: string;
+  summary?: string;
+  readTime: number;
+  views: number;
+  keyFeatures?: string[];
+  trendingScore?: number;
+  author: {
+    name: string;
+    avatar: string;
+  };
 }
 
 export interface UserPreferences {
