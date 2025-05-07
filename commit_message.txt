@@ -33,17 +33,16 @@ These improvements create a more personalized news experience by showing users m
 - Added explicit documentation about the application being designed for Render deployment only
 - Clearly separated development and production environments in documentation
 
-[Cursor] Update news service to use 2025 dates and enhance location-based articles
+[Cursor] Update news service to use current dates and enhance AI summarization
 
-- Updated the getFormattedDate function to use 2025 dates for all news articles
-- Reduced MAX_ARTICLE_AGE_DAYS from 7 to 5 days for fresher content
-- Significantly enhanced the fetchLocalNews function:
-  - Added better location query prioritization (city → region → country)
-  - Added fallback to TheNewsAPI when NewsData.io fails for local news
-  - Created detailed mock local articles with location-specific content when APIs fail
-  - Generated high-quality, realistic local news topics based on user location
-- Updated mock articles to use 2025 dates and added trending scores
-- Added more detailed location relevance explanations to show how news affects local areas
-- Added logging to help troubleshoot news API issues
-- Added variety of local news topics including development, infrastructure, business, healthcare, education, etc.
-- Ensured all articles have key features extracted for better summarization
+- Modified news service to get truly current articles (max 1 day old) instead of using 2025 dates
+- Added support for NewsAPI.org as an additional news source for more recent content
+- Implemented multi-provider AI summarization with support for:
+  - OpenAI via OpenRouter (primary)
+  - Claude by Anthropic (fallback)
+  - DeepSeek (additional fallback)
+- Enhanced AI summaries to include relevance, key features, and actual article summaries
+- Improved logging throughout the news fetching process for better debugging
+- Updated API calls to try multiple news providers in sequence for better resilience
+- Ensured all articles have AI-enhanced content when possible
+- Added more detailed API error handling and fallback mechanisms

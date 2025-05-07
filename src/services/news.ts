@@ -38,15 +38,12 @@ const NEWS_API_SOURCES = {
 // Constants for article fetching
 const ARTICLES_PER_CATEGORY = 10; // Fetch at least 10 articles per category
 const DEFAULT_COUNTRY = 'us'; // Default to US news
-const MAX_ARTICLE_AGE_DAYS = 5; // Only show articles from the last 5 days for maximum freshness
+const MAX_ARTICLE_AGE_DAYS = 1; // Only show very fresh articles (max 1 day old)
 
-// Helper to get formatted date for API calls
+// Function to get proper formatted recent date for API calls
 function getFormattedDate(daysAgo: number): string {
-  // For demo purposes, use 2025 dates instead of actual current date
-  const now = new Date();
-  // Set year to 2025
-  now.setFullYear(2025);
-  const date = new Date(now);
+  // Get actual current date - we want truly recent news
+  const date = new Date();
   date.setDate(date.getDate() - daysAgo);
   return date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
 }
@@ -54,65 +51,54 @@ function getFormattedDate(daysAgo: number): string {
 // Function to get real articles from multiple APIs
 export async function getArticles(category: string | null = null, userLocation?: LocationData): Promise<Article[]> {
   try {
+    console.log(`Fetching articles for category: ${category || 'All'}, location: ${userLocation ? JSON.stringify(userLocation) : 'None'}`);
+    
     // Try location-based news first if we have user location and category is null or 'local'
     if (userLocation && (!category || category === 'Local')) {
       try {
+        console.log('Attempting to fetch local news based on user location');
         const localArticles = await fetchLocalNews(userLocation);
         if (localArticles.length >= ARTICLES_PER_CATEGORY) {
-          return localArticles;
+          console.log(`Found ${localArticles.length} local articles`);
+          const articlesWithAI = await enhanceArticlesWithAI(localArticles, userLocation);
+          return articlesWithAI;
         }
       } catch (error) {
         console.error('Error fetching local news:', error);
       }
     }
 
-    // Then try regular category-based news from TheNewsAPI
-    try {
-      const articles = await fetchFromTheNewsAPI(category, userLocation);
-      if (articles.length >= ARTICLES_PER_CATEGORY) {
-        // Add relevance explanations based on location for some articles
-        if (userLocation) {
-          const articlesWithRelevance = await addRelevanceExplanations(articles, userLocation);
-          return articlesWithRelevance;
+    // Try multiple news APIs in sequence to get the most up-to-date articles
+    // This ensures if one API is down or not returning fresh content, we try another
+    const newsApis = [
+      { name: 'TheNewsAPI', fetchFn: fetchFromTheNewsAPI },
+      { name: 'NewsDataIO', fetchFn: fetchFromNewsDataIO },
+      { name: 'NewsAPI', fetchFn: fetchFromNewsAPI }
+    ];
+    
+    for (const api of newsApis) {
+      try {
+        console.log(`Attempting to fetch articles from ${api.name}`);
+        const articles = await api.fetchFn(category, userLocation);
+        
+        if (articles.length >= ARTICLES_PER_CATEGORY) {
+          console.log(`Found ${articles.length} articles from ${api.name}`);
+          // Add relevance explanations and AI summaries
+          const articlesWithAI = await enhanceArticlesWithAI(articles, userLocation);
+          return articlesWithAI;
         }
-        return articles;
+      } catch (error) {
+        console.error(`Error fetching from ${api.name}:`, error);
       }
-    } catch (error) {
-      console.error('Error fetching from TheNewsAPI:', error);
     }
 
-    // If that fails, try NewsData.io
-    try {
-      const articles = await fetchFromNewsDataIO(category, userLocation);
-      if (articles.length >= ARTICLES_PER_CATEGORY) {
-        // Add relevance explanations based on location for some articles
-        if (userLocation) {
-          const articlesWithRelevance = await addRelevanceExplanations(articles, userLocation);
-          return articlesWithRelevance;
-        }
-        return articles;
-      }
-    } catch (error) {
-      console.error('Error fetching from NewsData.io:', error);
-    }
-
-    // If all APIs fail, use mock data as fallback
-    console.warn('All news APIs failed, using mock data as fallback');
+    // If all APIs fail, use mock data as fallback, but ensure they look current
+    console.warn('All news APIs failed, using enhanced mock data as fallback');
     let mockArticles = getFilteredMockArticles(category);
     
     // Add mock location relevance to mock articles
     if (userLocation) {
-      mockArticles = mockArticles.map((article, index) => {
-        if (index % 3 === 0) { // Add relevance reasons to every third article
-          return {
-            ...article,
-            relevanceReason: `This is happening near ${userLocation.city || 'your location'}.`,
-            isLocalNews: true,
-            locationRelevance: `This news impacts ${userLocation.city || userLocation.region || 'your area'} directly.`
-          };
-        }
-        return article;
-      });
+      mockArticles = await enhanceArticlesWithAI(mockArticles, userLocation);
     }
     
     return mockArticles;
@@ -492,32 +478,139 @@ function extractKeyFeatures(text: string): string[] {
   return keyFeatures;
 }
 
-// Helper to add AI-generated summaries and relevance explanations
-async function addRelevanceExplanations(articles: Article[], location: LocationData): Promise<Article[]> {
+// Add NewsAPI.org API support
+async function fetchFromNewsAPI(category: string | null = null, userLocation?: LocationData): Promise<Article[]> {
+  try {
+    const apiKey = process.env.VITE_NEWSAPI_KEY || import.meta.env.VITE_NEWSAPI_KEY;
+    if (!apiKey) {
+      console.log('NewsAPI key not found, skipping');
+      return [];
+    }
+    
+    const recentDate = getFormattedDate(MAX_ARTICLE_AGE_DAYS);
+    console.log(`Fetching articles published after ${recentDate}`);
+    
+    let endpoint = `${NEWS_API_SOURCES.NEWSAPI}/top-headlines`;
+    
+    let params: any = {
+      apiKey: apiKey,
+      language: 'en',
+      pageSize: ARTICLES_PER_CATEGORY + 5, // Get extra articles for filtering
+      country: DEFAULT_COUNTRY,
+      from: recentDate
+    };
+
+    if (category && category !== 'All' && category !== 'Local') {
+      const categoryMap: { [key: string]: string } = {
+        'Technology': 'technology',
+        'Business': 'business',
+        'Politics': 'politics',
+        'Science': 'science',
+        'Health': 'health',
+        'Sports': 'sports',
+        'Entertainment': 'entertainment',
+        'World News': 'general'
+      };
+      
+      params.category = categoryMap[category] || 'general';
+    }
+
+    // Adjust country if user location is provided
+    if (userLocation && userLocation.country) {
+      const countryName = userLocation.country.toLowerCase();
+      if (countryName === 'united states' || countryName === 'usa' || countryName === 'us') {
+        params.country = 'us';
+      } else if (countryName === 'united kingdom' || countryName === 'uk') {
+        params.country = 'gb';
+      } else if (countryName === 'canada') {
+        params.country = 'ca';
+      } else if (countryName === 'australia') {
+        params.country = 'au';
+      }
+      // Only these countries are supported by NewsAPI.org
+    }
+
+    console.log('NewsAPI request params:', params);
+    const response = await axios.get(endpoint, { params });
+    
+    if (response.data && response.data.articles && response.data.articles.length > 0) {
+      console.log(`NewsAPI returned ${response.data.articles.length} articles`);
+      
+      return response.data.articles.map((item: any) => ({
+        id: `newsapi-${Math.random().toString(36).substring(2, 15)}`,
+        title: item.title,
+        category: category || mapCategoryFromKeywords([item.source.name]),
+        source: item.source.name,
+        url: item.url,
+        imageUrl: item.urlToImage,
+        summary: item.description || item.title,
+        content: item.content,
+        description: item.description,
+        publishedAt: item.publishedAt || new Date().toISOString(),
+        trendingScore: Math.floor(Math.random() * 30) + 70, // Random trending score between 70-100
+        keyFeatures: extractKeyFeatures(item.description || item.content || item.title)
+      }));
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error in fetchFromNewsAPI:', error);
+    return [];
+  }
+}
+
+// Enhanced function to use AI for summaries and relevance explanations
+async function enhanceArticlesWithAI(articles: Article[], location?: LocationData): Promise<Article[]> {
   try {
     // Only process a subset of articles to avoid making too many API calls
     const articlesToProcess = articles.slice(0, ARTICLES_PER_CATEGORY);
-    const openrouterApiKey = process.env.VITE_OPENROUTER_API_KEY || import.meta.env.VITE_OPENROUTER_API_KEY;
     
-    if (!openrouterApiKey) {
-      console.warn('OpenRouter API key not found, skipping relevance analysis');
-      return articles;
+    // Try different AI providers in sequence until one works
+    const aiProviders = [
+      { name: 'OpenRouter', key: process.env.VITE_OPENROUTER_API_KEY || import.meta.env.VITE_OPENROUTER_API_KEY },
+      { name: 'Claude', key: process.env.VITE_ANTHROPIC_API_KEY || import.meta.env.VITE_ANTHROPIC_API_KEY },
+      { name: 'DeepSeek', key: process.env.VITE_DEEPSEEK_API_KEY || import.meta.env.VITE_DEEPSEEK_API_KEY }
+    ];
+    
+    let workingProvider = null;
+    for (const provider of aiProviders) {
+      if (provider.key) {
+        workingProvider = provider;
+        console.log(`Using ${provider.name} for AI enhancements`);
+        break;
+      }
+    }
+    
+    if (!workingProvider) {
+      console.warn('No AI provider API key found, using basic enhancements');
+      return articles.map(article => {
+        return {
+          ...article,
+          relevanceReason: location ? `This ${article.category.toLowerCase()} news could affect ${location.city || location.region || 'your area'}.` : undefined,
+          aiSummary: `This article covers developments in ${article.category.toLowerCase()} that may be relevant to readers interested in this topic.`,
+          keyFeatures: article.keyFeatures || extractKeyFeatures(article.summary || article.title)
+        };
+      });
     }
 
     const processedArticles = await Promise.all(
-      articlesToProcess.map(async (article, index) => {
-        // Process every article for better user experience
+      articlesToProcess.map(async (article) => {
         try {
+          // Create a prompt for the AI
           const prompt = `
-Given the following article, please provide two things:
-1. A concise one-sentence explanation (25 words max) of why this news might personally matter to someone living in ${location.city || location.region || 'the provided location'}, ${location.country || ''}.
-2. Extract 3-4 key features or important pieces of information from the article as bullet points.
+Given the following news article, please provide:
+1. A concise one-sentence explanation (25 words max) of why this news matters to someone${location ? ` living in ${location.city || location.region || location.country || 'the provided location'}` : ''}.
+2. A brief summary (2-3 sentences) of the key points.
+3. Extract 3-4 key features or important pieces of information as bullet points.
 
 Article Title: ${article.title}
-Article Summary: ${article.summary}
+Article Summary: ${article.summary || article.description || ''}
+Article Content: ${article.content || article.description || article.summary || ''}
+Date Published: ${article.publishedAt}
 
 Format your response as:
 RELEVANCE: [your one-sentence explanation]
+SUMMARY: [your 2-3 sentence summary]
 FEATURES:
 - [first key point]
 - [second key point]
@@ -525,32 +618,85 @@ FEATURES:
 - [optional fourth key point]
 `;
 
-          const response = await axios.post(
-            'https://openrouter.ai/api/v1/chat/completions',
-            {
-              model: 'openai/gpt-3.5-turbo-0125',
-              messages: [{ role: 'user', content: prompt }],
-              temperature: 0.7,
-              max_tokens: 250
-            },
-            {
-              headers: {
-                'Authorization': `Bearer ${openrouterApiKey}`,
-                'Content-Type': 'application/json'
+          let aiResponse;
+          
+          // Use the working provider
+          if (workingProvider.name === 'OpenRouter') {
+            const response = await axios.post(
+              'https://openrouter.ai/api/v1/chat/completions',
+              {
+                model: 'openai/gpt-4o',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.7,
+                max_tokens: 350
+              },
+              {
+                headers: {
+                  'Authorization': `Bearer ${workingProvider.key}`,
+                  'Content-Type': 'application/json'
+                }
               }
-            }
-          );
-
-          if (response.data && response.data.choices && response.data.choices.length > 0) {
-            const aiResponse = response.data.choices[0].message.content.trim();
+            );
             
-            // Extract relevance and features from the response
+            if (response.data && response.data.choices && response.data.choices.length > 0) {
+              aiResponse = response.data.choices[0].message.content.trim();
+            }
+          } else if (workingProvider.name === 'Claude') {
+            const response = await axios.post(
+              'https://api.anthropic.com/v1/messages',
+              {
+                model: 'claude-3-sonnet-20240229',
+                max_tokens: 350,
+                messages: [{ role: 'user', content: prompt }]
+              },
+              {
+                headers: {
+                  'x-api-key': workingProvider.key,
+                  'anthropic-version': '2023-06-01',
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+            
+            if (response.data && response.data.content) {
+              aiResponse = response.data.content[0].text;
+            }
+          } else if (workingProvider.name === 'DeepSeek') {
+            const response = await axios.post(
+              'https://api.deepseek.com/v1/chat/completions',
+              {
+                model: 'deepseek-chat',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.7,
+                max_tokens: 350
+              },
+              {
+                headers: {
+                  'Authorization': `Bearer ${workingProvider.key}`,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+            
+            if (response.data && response.data.choices && response.data.choices.length > 0) {
+              aiResponse = response.data.choices[0].message.content;
+            }
+          }
+          
+          if (aiResponse) {
+            // Parse the AI response
             let relevanceReason = '';
+            let aiSummary = '';
             let keyFeatures: string[] = [];
             
             const relevanceMatch = aiResponse.match(/RELEVANCE:\s*(.*?)(?=\n|$)/);
             if (relevanceMatch && relevanceMatch[1]) {
               relevanceReason = relevanceMatch[1].trim();
+            }
+            
+            const summaryMatch = aiResponse.match(/SUMMARY:\s*([\s\S]*?)(?=\nFEATURES:|$)/);
+            if (summaryMatch && summaryMatch[1]) {
+              aiSummary = summaryMatch[1].trim();
             }
             
             const featureMatches = aiResponse.match(/- (.*?)(?=\n|$)/g);
@@ -560,13 +706,13 @@ FEATURES:
             
             return {
               ...article,
-              relevanceReason: relevanceReason || `This ${article.category.toLowerCase()} news could impact ${location.city || 'your area'}'s residents.`,
-              keyFeatures: keyFeatures.length > 0 ? keyFeatures : article.keyFeatures || extractKeyFeatures(article.summary),
-              aiSummary: `This article highlights ${article.category.toLowerCase()} developments that may affect ${location.city || 'your area'}'s economy, community, or daily life.`
+              relevanceReason: relevanceReason || undefined,
+              aiSummary: aiSummary || article.aiSummary,
+              keyFeatures: keyFeatures.length > 0 ? keyFeatures : article.keyFeatures
             };
           }
         } catch (error) {
-          console.error('Error generating relevance explanation:', error);
+          console.error('Error generating AI enhancements:', error);
         }
         
         return article;
@@ -583,7 +729,7 @@ FEATURES:
 
     return result;
   } catch (error) {
-    console.error('Error adding relevance explanations:', error);
+    console.error('Error enhancing articles with AI:', error);
     return articles;
   }
 }
@@ -663,7 +809,7 @@ export const searchArticles = async (query: string, userLocation?: LocationData)
         
         // Add relevance explanations if we have user location
         if (userLocation) {
-          return await addRelevanceExplanations(articles, userLocation);
+          return await enhanceArticlesWithAI(articles, userLocation);
         }
         
         return articles;
@@ -702,7 +848,7 @@ export const searchArticles = async (query: string, userLocation?: LocationData)
         
         // Add relevance explanations if we have user location
         if (userLocation) {
-          return await addRelevanceExplanations(articles, userLocation);
+          return await enhanceArticlesWithAI(articles, userLocation);
         }
         
         return articles;
