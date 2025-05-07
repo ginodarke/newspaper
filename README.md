@@ -1,15 +1,55 @@
 # Newspaper.AI
 
-Newspaper.AI is an AI-powered news aggregator with personalized content delivery. The app combines TikTok-like consumption speed with AI-generated summaries and analysis of news articles, tailored to each user.
+A modern AI-powered news aggregator that combines the TikTok-like consumption speed with AI-generated summaries of news articles, tailored to each user.
+
+## Development
+
+To run the application in development mode:
+
+```bash
+npm install
+npm run dev
+```
+
+This will start the Vite development server at http://localhost:3000.
+
+## Production Deployment
+
+This application is designed to be deployed on Render. It is not meant to be served locally in production mode.
+
+For deployment instructions, see [RENDER_DEPLOY.md](./RENDER_DEPLOY.md).
+
+## Scripts
+
+- `npm run dev` - Start the development server
+- `npm run build` - Build the application for production
+- `npm run preview` - Preview the production build locally (for testing only, not for serving)
+- `npm run start` - Start the production server (used by Render for deployment)
+- `npm run lint` - Run ESLint
+- `npm run test` - Run Vitest tests
+- `npm run test:watch` - Run Vitest in watch mode
+- `npm run test:e2e` - Run Playwright end-to-end tests
 
 ## Features
 
 - Personalized news feed based on user preferences
-- AI-generated summaries and relevance explanations
-- Dark/light mode themes
-- Search functionality
-- Authentication system with Supabase
-- Responsive design for all device sizes
+- AI-generated summaries of articles
+- Location-based news recommendations
+- Trending topics and articles
+- Dark mode support
+- Mobile-responsive design
+- 3D visual elements using React Three Fiber
+
+## Technologies
+
+- React with TypeScript
+- Tailwind CSS
+- Vite
+- Supabase for authentication
+- AI summaries via OpenRouter
+- Express server for production deployment
+- Unit testing with Vitest
+- E2E testing with Playwright
 
 ## Tech Stack
 

@@ -23,3 +23,12 @@ These improvements create a more personalized news experience by showing users m
 - Added a dedicated "Article Freshness" section in the AI Analysis tab
 - Added an "Article Timeline" section in the Related Context tab with more detailed time information
 - Improved the overall readability of publication dates throughout the application
+
+[Cursor] Update deployment configuration for Render-only production deployment
+
+- Modified server.js to remove localhost references
+- Updated RENDER_DEPLOY.md to clarify production vs development environments
+- Updated package.json preview script to use a different port for local testing
+- Enhanced README.md with clear deployment instructions
+- Added explicit documentation about the application being designed for Render deployment only
+- Clearly separated development and production environments in documentation

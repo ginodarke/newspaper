@@ -8,6 +8,9 @@
   - OpenRouter
   - At least one news API (TheNewsAPI, NewsData.io, NewsAPI.org, or ApiTube)
 
+## Important Note
+This application is designed to be deployed on Render and accessed through the Render-provided URL. It is not meant to be served from your local machine. Development testing should be done using `npm run dev` which uses Vite's development server.
+
 ## Deployment Steps
 
 ### 1. Log in to Render Dashboard
@@ -67,6 +70,20 @@ VITE_APITUBE_KEY=your_api_key_here
 Once deployed, your application will be available at the URL provided by Render:
 - `https://newspaper-ai.onrender.com` (or similar URL based on your service name)
 
+## Production vs Development
+
+### Production (Render)
+- Uses the `server.js` Express server to serve the built static files
+- Accessed via the Render-provided URL (e.g., https://newspaper-ai.onrender.com)
+- All environment variables are set in the Render dashboard
+- Optimized for performance with compression and proper caching
+
+### Development (Local)
+- Uses Vite's development server via `npm run dev`
+- Accessed at http://localhost:3000
+- Environment variables are loaded from .env.local file
+- Provides hot module replacement and other development features
+
 ## Checking Deployment Status
 1. From the Render dashboard, click on your web service
 2. View the current status, logs, and events
@@ -90,7 +107,7 @@ Once deployed, your application will be available at the URL provided by Render:
 - Try using a different News API provider
 
 ## Post-Deployment Verification
-After successful deployment, test the following:
+After successful deployment, test the following using the Render-provided URL:
 1. User authentication (sign up and sign in)
 2. Onboarding flow
 3. News feed loads real articles 
