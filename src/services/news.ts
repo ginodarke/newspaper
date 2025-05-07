@@ -1109,11 +1109,3 @@ export async function saveArticle(articleId: string): Promise<void> {
   // In a real app, this would save to a database
   console.log(`Saving article ${articleId}`);
 }
-
-export async function unsaveArticle(articleId: string): Promise<void> {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  
-  // In a real app, this would remove from a database
-  console.log(`Unsaving article ${articleId}`);
-} 
