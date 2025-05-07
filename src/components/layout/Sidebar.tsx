@@ -13,7 +13,7 @@ import {
   Music,
   Gamepad2,
   Heart,
-  X
+  MapPin
 } from 'lucide-react';
 
 const categories = [
@@ -65,6 +65,18 @@ export default function Sidebar() {
         >
           <Home className="h-5 w-5" />
           <span>Home</span>
+        </Link>
+
+        <Link
+          to="/local"
+          className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            isActive('/local')
+              ? 'bg-primary text-primary-foreground'
+              : 'hover:bg-accent'
+          }`}
+        >
+          <MapPin className="h-5 w-5" />
+          <span>Local News</span>
         </Link>
 
         <Link
