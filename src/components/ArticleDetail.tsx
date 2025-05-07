@@ -42,6 +42,52 @@ export default function ArticleDetail({ article, onClose }: ArticleDetailProps) 
     return 'Average';
   };
   
+  // Format timestamp to relative time (e.g., "2 hours ago")
+  const getRelativeTime = (dateString: string) => {
+    const now = new Date();
+    const publishedDate = new Date(dateString);
+    const differenceInSeconds = Math.floor((now.getTime() - publishedDate.getTime()) / 1000);
+    
+    if (differenceInSeconds < 60) {
+      return 'Just now';
+    }
+    
+    const differenceInMinutes = Math.floor(differenceInSeconds / 60);
+    if (differenceInMinutes < 60) {
+      return `${differenceInMinutes} ${differenceInMinutes === 1 ? 'minute' : 'minutes'} ago`;
+    }
+    
+    const differenceInHours = Math.floor(differenceInMinutes / 60);
+    if (differenceInHours < 24) {
+      return `${differenceInHours} ${differenceInHours === 1 ? 'hour' : 'hours'} ago`;
+    }
+    
+    const differenceInDays = Math.floor(differenceInHours / 24);
+    if (differenceInDays < 7) {
+      return `${differenceInDays} ${differenceInDays === 1 ? 'day' : 'days'} ago`;
+    }
+    
+    // If older than 7 days, return the actual date
+    return publishedDate.toLocaleDateString();
+  };
+  
+  // Get freshness indicator class based on article age
+  const getFreshnessClass = (dateString: string) => {
+    const now = new Date();
+    const publishedDate = new Date(dateString);
+    const differenceInHours = Math.floor((now.getTime() - publishedDate.getTime()) / (1000 * 60 * 60));
+    
+    if (differenceInHours < 6) {
+      return "text-green-500 dark:text-green-400"; // Very fresh
+    } else if (differenceInHours < 24) {
+      return "text-blue-500 dark:text-blue-400"; // Fresh
+    } else if (differenceInHours < 72) {
+      return "text-purple-500 dark:text-purple-400"; // Recent
+    }
+    
+    return "text-gray-500 dark:text-gray-400"; // Older
+  };
+  
   return (
     <div className="flex flex-col h-full max-h-[90vh]">
       {/* Header */}
@@ -103,7 +149,12 @@ export default function ArticleDetail({ article, onClose }: ArticleDetailProps) 
                 <div className="absolute bottom-0 left-0 p-3 bg-gradient-to-t from-black/70 to-transparent w-full">
                   <div className="flex justify-between items-center">
                     <span className="text-white text-sm">{article.source}</span>
-                    <span className="text-white text-sm">{new Date(article.publishedAt).toLocaleDateString()}</span>
+                    <div className="flex items-center">
+                      <svg className="w-4 h-4 text-white mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-white text-sm">{getRelativeTime(article.publishedAt)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -134,8 +185,11 @@ export default function ArticleDetail({ article, onClose }: ArticleDetailProps) 
                 </span>
               )}
               
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                {new Date(article.publishedAt).toLocaleString()}
+              <span className={`text-sm flex items-center ${getFreshnessClass(article.publishedAt)}`}>
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {getRelativeTime(article.publishedAt)}
               </span>
             </div>
             
@@ -227,6 +281,18 @@ export default function ArticleDetail({ article, onClose }: ArticleDetailProps) 
               </div>
             )}
             
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/30 rounded-lg border border-amber-100 dark:border-amber-800">
+              <h3 className="text-lg font-medium text-amber-800 dark:text-amber-300 mb-2">Article Freshness</h3>
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-amber-700 dark:text-amber-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className={`text-amber-700 dark:text-amber-200 font-medium ${getFreshnessClass(article.publishedAt)}`}>
+                  Published {getRelativeTime(article.publishedAt)}
+                </p>
+              </div>
+            </div>
+            
             {article.trendingScore && (
               <div className="p-4 bg-pink-50 dark:bg-pink-900/30 rounded-lg border border-pink-100 dark:border-pink-800">
                 <h3 className="text-lg font-medium text-pink-800 dark:text-pink-300 mb-2">Trending Analysis</h3>
@@ -268,6 +334,23 @@ export default function ArticleDetail({ article, onClose }: ArticleDetailProps) 
               </div>
             )}
             
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/30 rounded-lg border border-amber-100 dark:border-amber-800">
+              <h3 className="text-lg font-medium text-amber-800 dark:text-amber-300 mb-2">Article Timeline</h3>
+              <div className="flex items-start gap-2">
+                <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-700 dark:text-amber-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-amber-700 dark:text-amber-200">
+                    This story was published <span className={`font-medium ${getFreshnessClass(article.publishedAt)}`}>{getRelativeTime(article.publishedAt)}</span>
+                  </p>
+                  <p className="text-amber-600 dark:text-amber-300 mt-1 text-sm">
+                    It's considered {getRelativeTime(article.publishedAt).includes('hour') || getRelativeTime(article.publishedAt).includes('Just now') || getRelativeTime(article.publishedAt).includes('minute') ? 'a very recent development' : 'a recent development'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
             <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Historical Context</h3>
               <p className="text-gray-700 dark:text-gray-300">
@@ -303,7 +386,7 @@ export default function ArticleDetail({ article, onClose }: ArticleDetailProps) 
                       Related article about {article.title.split(' ').slice(0, 3).join(' ')}...
                     </a>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      Published {Math.floor(Math.random() * 7) + 1} days ago
+                      Published {Math.floor(Math.random() * Math.min(7, i+1)) + 1} days ago
                     </p>
                   </li>
                 ))}

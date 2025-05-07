@@ -13,3 +13,13 @@ This commit significantly improves the news article functionality by implementin
 - Enhanced article UI with better categorization and feature highlights
 
 These improvements create a more personalized news experience by showing users more relevant content and explaining why each article matters to them based on their location and interests.
+
+[Cursor] Implement relative time display for news articles
+
+- Added new `getRelativeTime` function to convert publication timestamps to human-readable formats (e.g., "Just now", "2 hours ago", "3 days ago")
+- Added color-coded freshness indicators based on article age (green for very fresh, blue for fresh, purple for recent, gray for older)
+- Created a `getFreshnessClass` function to determine the appropriate styling based on article age
+- Updated article card timestamps across the application to use the new relative time format
+- Added a dedicated "Article Freshness" section in the AI Analysis tab
+- Added an "Article Timeline" section in the Related Context tab with more detailed time information
+- Improved the overall readability of publication dates throughout the application
