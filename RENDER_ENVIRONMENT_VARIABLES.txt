@@ -1,0 +1,23 @@
+# Render Environment Variables for Newspaper.AI
+# Copy and paste these directly into your Render dashboard
+
+# OpenRouter API Key
+VITE_OPENROUTER_API_KEY=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
+
+# Supabase Credentials (found in project code)
+VITE_SUPABASE_URL=https://mrfcrewlkwrqtwzlxpra.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yZmNyZXdsa3dycXR3emx4cHJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQxNDQ3MzIsImV4cCI6MjA1OTcyMDczMn0.6jzgK-K6nntipO0ZSnmXSAvb53xqp7-uQF_S7KHDLJU
+
+# News API Key
+# Note: No specific News API key was found in the project code
+# If you have a News API key, add it here:
+VITE_NEWS_API_KEY=
+
+# Server configuration
+PORT=10000
+NODE_ENV=production
+NODE_VERSION=18
+
+# Copy all of these environment variables
+# and paste them into your Render dashboard under
+# your web service > Environment section 

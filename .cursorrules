@@ -17,6 +17,7 @@
 - When setting up E2E tests with Playwright for React applications, create test files in a separate test directory and configure Playwright to start the dev server automatically
 - For CI/CD pipelines, ensure that GitHub Actions workflows are set up with appropriate caching to speed up builds and proper test commands
 - When deploying React apps to Render, ensure the render.yaml file includes proper redirect rules for SPA routing and environment variable configuration
+- React Three Fiber hooks (useFrame, useThree) must be used within a Canvas component context, otherwise they will cause errors during runtime
 
 ## Scratchpad
 
@@ -61,6 +62,8 @@ Newspaper.AI is an AI-powered news aggregator with personalized content delivery
 - Set up CI/CD pipeline with GitHub Actions for testing and deployment to Render
 - Created deployment guide for Render with step-by-step instructions
 - Built the application successfully for production deployment
+- Fixed R3F hooks error by properly wrapping components in Canvas
+- Created simplified deployment guide and prepared app for production deployment
 
 #### Next Steps:
 [X] Implement real authentication with Supabase
@@ -77,6 +80,8 @@ Newspaper.AI is an AI-powered news aggregator with personalized content delivery
 [X] Add unit tests
 [X] Set up E2E tests with Playwright
 [X] Set up proper deployment pipeline
+[X] Fix R3F hooks error by properly wrapping components in Canvas
+[X] Create simplified deployment guide and build for production
 
 #### Final Improvements:
 - Refine UI and UX with smoother transitions

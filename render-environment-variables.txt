@@ -1,0 +1,17 @@
+# Render Environment Variables for Newspaper.AI
+
+# Copy and paste these into your Render dashboard environment variables section
+
+# OpenRouter API Key
+VITE_OPENROUTER_API_KEY=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
+
+# Note: You need to add the following keys from your services:
+# I don't see these in our conversation, you'll need to provide these:
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+VITE_NEWS_API_KEY=
+
+# Server configuration
+PORT=10000
+NODE_ENV=production
+NODE_VERSION=18 
