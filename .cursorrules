@@ -22,6 +22,8 @@
 - For better user experience, don't require users to complete onboarding immediately - allow them to browse the site first and complete profile setup later when they're ready
 - When designing modern UIs, use higher contrast ratios between background and text for better readability and accessibility
 - When encountering Supabase schema errors, implement graceful fallbacks and user-friendly error messages that don't alarm users with technical details
+- When working with Supabase, make sure your database field names in code match the actual column names in the database schema - mismatches like using 'interests' in code when the database column is named 'categories' will cause errors
+- When deploying SPA React applications to Render, set the rewrite rule destination to '/index.html' instead of just '/' to ensure proper routing for direct URL access and page refreshes
 
 ## Scratchpad
 

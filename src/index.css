@@ -2,46 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Modern Indigo & Teal Theme */
 @layer base {
   :root {
-    /* Base colors */
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    /* Card colors */
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    /* Popover colors */
+    /* Light Mode */
+    --background: 0 0% 100%; /* White */
+    --foreground: 225 30% 15%; /* Dark Indigo Text */
+    --card: 220 30% 97%; /* Very Light Grayish Blue */
+    --card-foreground: 225 30% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    /* Primary colors */
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    /* Secondary colors */
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    /* Muted colors */
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    /* Accent colors */
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    /* Destructive colors */
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    /* Border colors */
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    /* Radius */
+    --popover-foreground: 225 30% 15%;
+    --primary: 225 70% 50%; /* Indigo */
+    --primary-foreground: 0 0% 100%; /* White */
+    --secondary: 175 70% 40%; /* Teal */
+    --secondary-foreground: 0 0% 100%; /* White */
+    --muted: 220 30% 94%; /* Light Grayish Blue */
+    --muted-foreground: 220 15% 45%; /* Muted Indigo Text */
+    --accent: 175 70% 40%; /* Teal */
+    --accent-foreground: 0 0% 100%; /* White */
+    --destructive: 0 70% 50%; /* Red */
+    --destructive-foreground: 0 0% 100%; /* White */
+    --border: 220 30% 90%; /* Lighter Grayish Blue Border */
+    --input: 220 30% 90%;
+    --ring: 225 70% 50%; /* Indigo */
     --radius: 0.5rem;
 
     /* Custom accent colors */
@@ -61,33 +44,26 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Dark Mode */
+    --background: 225 20% 12%; /* Very Dark Indigo */
+    --foreground: 210 40% 95%; /* Light Grayish Blue Text */
+    --card: 225 20% 18%; /* Dark Indigo */
+    --card-foreground: 210 40% 95%;
+    --popover: 225 20% 12%;
+    --popover-foreground: 210 40% 95%;
+    --primary: 225 70% 65%; /* Brighter Indigo */
+    --primary-foreground: 225 20% 12%; /* Very Dark Indigo */
+    --secondary: 175 70% 50%; /* Brighter Teal */
+    --secondary-foreground: 225 20% 12%; /* Very Dark Indigo */
+    --muted: 225 20% 22%; /* Darker Indigo */
+    --muted-foreground: 215 20% 65%; /* Grayish Blue Text */
+    --accent: 175 70% 50%; /* Brighter Teal */
+    --accent-foreground: 225 20% 12%; /* Very Dark Indigo */
+    --destructive: 0 60% 50%; /* Brighter Red */
+    --destructive-foreground: 0 0% 100%; /* White */
+    --border: 225 20% 25%; /* Slightly Lighter Dark Indigo Border */
+    --input: 225 20% 25%;
+    --ring: 225 70% 65%; /* Brighter Indigo */
 
     /* Custom accent colors - darker variants */
     --cherry-red: 352 98% 35%;
