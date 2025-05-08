@@ -7,11 +7,21 @@ import { configDefaults } from 'vitest/config';
 export default defineConfig({
   plugins: [react()],
   publicDir: 'public',
+  base: '/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
     emptyOutDir: true,
-    sourcemap: false
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom', 'framer-motion'],
+          ui: ['lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs'],
+          three: ['three', '@react-three/fiber', '@react-three/drei'],
+        }
+      }
+    }
   },
   resolve: {
     alias: {
