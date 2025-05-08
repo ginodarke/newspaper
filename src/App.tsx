@@ -36,53 +36,53 @@ function App() {
       <AuthProvider>
         <ThemeProvider>
           <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
-            <Routes>
-              {/* Auth and Onboarding routes */}
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/onboarding" element={<Onboarding />} />
-              
-              {/* Redirect root to feed for authenticated users or onboarding for new users */}
-              <Route path="/" element={
-                <AuthRedirect />
-              } />
-              
-              {/* Protected routes */}
-              <Route path="/feed" element={
-                <PrivateRoute>
+            <div className="flex flex-col min-h-screen">
+              <Routes>
+                {/* Auth and Onboarding routes */}
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/onboarding" element={<Onboarding />} />
+                
+                {/* Redirect root to home */}
+                <Route path="/" element={<AuthRedirect />} />
+                
+                {/* Protected routes */}
+                <Route path="/feed" element={
+                  <PrivateRoute>
+                    <MainLayout>
+                      <ErrorBoundary>
+                        <NewsFeed />
+                      </ErrorBoundary>
+                    </MainLayout>
+                  </PrivateRoute>
+                } />
+                
+                <Route path="/search" element={
+                  <PrivateRoute>
+                    <MainLayout>
+                      <ErrorBoundary>
+                        <SearchResults />
+                      </ErrorBoundary>
+                    </MainLayout>
+                  </PrivateRoute>
+                } />
+                
+                <Route path="/profile" element={
+                  <PrivateRoute>
+                    <MainLayout>
+                      <ErrorBoundary>
+                        <Profile />
+                      </ErrorBoundary>
+                    </MainLayout>
+                  </PrivateRoute>
+                } />
+                
+                <Route path="*" element={
                   <MainLayout>
-                    <ErrorBoundary>
-                      <NewsFeed />
-                    </ErrorBoundary>
+                    <NotFound />
                   </MainLayout>
-                </PrivateRoute>
-              } />
-              
-              <Route path="/search" element={
-                <PrivateRoute>
-                  <MainLayout>
-                    <ErrorBoundary>
-                      <SearchResults />
-                    </ErrorBoundary>
-                  </MainLayout>
-                </PrivateRoute>
-              } />
-              
-              <Route path="/profile" element={
-                <PrivateRoute>
-                  <MainLayout>
-                    <ErrorBoundary>
-                      <Profile />
-                    </ErrorBoundary>
-                  </MainLayout>
-                </PrivateRoute>
-              } />
-              
-              <Route path="*" element={
-                <MainLayout>
-                  <NotFound />
-                </MainLayout>
-              } />
-            </Routes>
+                } />
+              </Routes>
+            </div>
           </Suspense>
         </ThemeProvider>
       </AuthProvider>

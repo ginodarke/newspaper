@@ -20,7 +20,7 @@ import { Link } from 'react-router-dom';
 
 export default function Home() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center text-gray-800 dark:text-white bg-gray-100 dark:bg-gray-900">
+    <div className="flex flex-col items-center justify-center flex-grow p-4 text-center text-gray-800 dark:text-white bg-gray-100 dark:bg-gray-900">
       {/* Simplified content */}
       <div className="max-w-4xl p-8 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg bg-white dark:bg-gray-800">
         <h1 className="text-5xl font-bold mb-6 text-blue-600 dark:text-blue-400">
