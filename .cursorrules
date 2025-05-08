@@ -18,6 +18,10 @@
 - For CI/CD pipelines, ensure that GitHub Actions workflows are set up with appropriate caching to speed up builds and proper test commands
 - When deploying React apps to Render, ensure the render.yaml file includes proper redirect rules for SPA routing and environment variable configuration
 - React Three Fiber hooks (useFrame, useThree) must be used within a Canvas component context, otherwise they will cause errors during runtime
+- When working with Supabase, ensure field names in code match exactly with the database schema column names - for example, if you see "Could not find the 'categories' column" error, check if the field might be called "interests" in the database
+- For better user experience, don't require users to complete onboarding immediately - allow them to browse the site first and complete profile setup later when they're ready
+- When designing modern UIs, use higher contrast ratios between background and text for better readability and accessibility
+- When encountering Supabase schema errors, implement graceful fallbacks and user-friendly error messages that don't alarm users with technical details
 
 ## Scratchpad
 
@@ -34,11 +38,97 @@ Newspaper.AI is an AI-powered news aggregator with personalized content delivery
 - Deployment: Render
 - Testing: Vitest (unit), Playwright (E2E)
 
-#### Project Structure:
-- React application with React Router for navigation
-- Auth system using Supabase
-- Personalized onboarding flow
-- News feed with categorized articles
+#### UI Implementation Plan:
+
+1. Base Structure Setup
+[ ] Create responsive layout with fluid grid system
+[ ] Set up HTML5 semantic structure
+[ ] Implement viewport meta tags
+[ ] Create flexible container system
+
+2. Card-Based UI Implementation
+[ ] Design reusable card component variants
+[ ] Create card containers with CSS Grid
+[ ] Implement variable card heights
+[ ] Add box shadows and hover effects
+[ ] Configure card header and body
+
+3. Color System Implementation
+[ ] Set up CSS custom properties
+[ ] Create base theme with light/dark variants
+[ ] Implement accent color system
+[ ] Set up color mapping for categories
+[ ] Add color contrast checking
+
+4. Typography Implementation
+[ ] Set up type scale system
+[ ] Configure primary and secondary fonts
+[ ] Implement responsive typography
+[ ] Configure line heights and character counts
+[ ] Add text rendering optimizations
+
+5. Navigation and Header
+[ ] Create sticky header
+[ ] Implement primary navigation
+[ ] Add search component
+[ ] Create user account section
+[ ] Implement theme toggle
+
+6. Personalization Features
+[ ] Set up user preferences system
+[ ] Create onboarding flow
+[ ] Implement "For You" section
+[ ] Design content filters
+[ ] Create reading history and saved articles
+
+7. Article View Implementation
+[ ] Design immersive reading experience
+[ ] Implement progressive loading
+[ ] Add reading time indicators
+[ ] Create related content section
+[ ] Design persistent navigation
+
+8. Micro-interactions and Animation
+[ ] Implement loading animations
+[ ] Create view transitions
+[ ] Design pull-to-refresh
+[ ] Add hover effects
+[ ] Implement scroll animations
+
+9. Media Integration
+[ ] Set up lazy loading
+[ ] Create responsive images
+[ ] Implement video players
+[ ] Design audio controls
+[ ] Create image galleries
+
+10. Performance Optimization
+[ ] Set up code splitting
+[ ] Implement image optimization
+[ ] Configure caching
+[ ] Set up resource hints
+[ ] Create skeleton loading
+
+11. Accessibility Implementation
+[ ] Ensure semantic HTML
+[ ] Add ARIA attributes
+[ ] Implement keyboard navigation
+[ ] Create focus states
+[ ] Ensure color contrast
+
+12. Cross-browser Compatibility
+[ ] Test layout consistency
+[ ] Add vendor prefixes
+[ ] Implement feature detection
+[ ] Create fallbacks
+[ ] Ensure touch interactions
+
+13. Analytics Integration
+[ ] Set up event tracking
+[ ] Implement scroll depth tracking
+[ ] Create custom dimensions
+[ ] Set up conversion funnels
+[ ] Implement heat mapping
 
 #### Current Progress:
 - Basic application structure is set up
@@ -66,22 +156,10 @@ Newspaper.AI is an AI-powered news aggregator with personalized content delivery
 - Created simplified deployment guide and prepared app for production deployment
 
 #### Next Steps:
-[X] Implement real authentication with Supabase
-[X] Connect onboarding preferences to Supabase
-[X] Fetch real news articles in the NewsFeed component
-[X] Implement proper error handling and loading states
-[X] Create article detail view
-[X] Add AI summary functionality
-[X] Fix TypeScript linter errors for React, React-Router, and React-DOM
-[X] Add user profile management page
-[X] Implement dark mode toggle
-[X] Add search functionality for finding specific news
-[X] Implement proper error boundaries for fault tolerance
-[X] Add unit tests
-[X] Set up E2E tests with Playwright
-[X] Set up proper deployment pipeline
-[X] Fix R3F hooks error by properly wrapping components in Canvas
-[X] Create simplified deployment guide and build for production
+[ ] Implement new UI system with all the planned features
+[ ] Test and optimize performance
+[ ] Deploy to Render
+[ ] Monitor analytics and user feedback
 
 #### Final Improvements:
 - Refine UI and UX with smoother transitions
@@ -91,3 +169,25 @@ Newspaper.AI is an AI-powered news aggregator with personalized content delivery
 
 #### Issues to fix:
 - Fix article content styling and layout for better readability 
+
+## Current Task: Improve Profile Setup and User Experience
+
+[X] Fix the error with the 'categories' column in Supabase schema cache
+[X] Update the user flow so users go to the homepage first instead of being required to set up a profile
+[X] Add a profile setup link in the navigation for users to access later
+[X] Update the color theme for higher contrast and a more modern look
+[X] Add a more user-friendly error handling for schema-related errors
+
+## Changes made:
+1. Updated UserPreferences interface to match Supabase schema (renamed 'categories' to 'interests')
+2. Changed App.tsx to show the homepage as the first view instead of redirecting to Auth/Onboarding
+3. Updated Home page with a modern, high-contrast UI and direct links to both Auth and Feed pages
+4. Added "Set Up Profile" links in the Header and Sidebar for easy access to onboarding
+5. Improved the overall UI with higher contrast and more modern styling
+6. Added better error handling for schema-related issues
+7. Modified onboarding page styling to match the new modern look
+
+## Lessons Learned:
+- Supabase field names in code need to match exactly with database column names
+- A better user experience is to allow browsing before requiring profile setup
+- Higher contrast ratios improve readability and accessibility 

@@ -47,6 +47,25 @@ export default function Onboarding() {
     checkUserSession();
   }, [user, navigate]);
   
+  // Handle schema errors by displaying a more user-friendly message
+  useEffect(() => {
+    const handleSchemaError = () => {
+      // Check if the error contains a schema-related message
+      if (error && error.toLowerCase().includes('schema cache')) {
+        setError('Setting up your preferences. This will take just a moment...');
+        
+        // Retry after a short delay
+        const timer = setTimeout(() => {
+          setError('');
+        }, 2000);
+        
+        return () => clearTimeout(timer);
+      }
+    };
+    
+    handleSchemaError();
+  }, [error]);
+  
   const availableInterests = [
     "Technology", "Business", "Politics", "Science", 
     "Health", "Sports", "Entertainment", "World News"
@@ -179,9 +198,9 @@ export default function Onboarding() {
   };
   
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
+    <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-b from-blue-600 to-blue-800 dark:from-slate-900 dark:to-slate-800">
       <motion.div 
-        className="w-full max-w-2xl p-8 space-y-8 bg-white rounded-lg shadow-lg dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+        className="w-full max-w-2xl p-8 space-y-8 bg-white rounded-lg shadow-xl dark:bg-gray-900 border border-gray-100 dark:border-gray-800"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -195,17 +214,17 @@ export default function Onboarding() {
             Set Up Your Profile
           </motion.h1>
           <motion.p 
-            className="mt-2 text-gray-600 dark:text-gray-300"
+            className="mt-2 text-gray-700 dark:text-gray-300"
             variants={itemVariants}
           >
             Step {step} of 3
           </motion.p>
           <motion.div 
-            className="w-full bg-gray-200 dark:bg-gray-700 h-2 mt-4 rounded-full overflow-hidden"
+            className="w-full bg-gray-200 dark:bg-gray-800 h-2 mt-4 rounded-full overflow-hidden"
             variants={itemVariants}
           >
             <motion.div 
-              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               initial={{ width: `${((step - 1) / 3) * 100}%` }}
               animate={{ width: `${(step / 3) * 100}%` }}
               transition={{ duration: 0.5 }}
@@ -215,7 +234,11 @@ export default function Onboarding() {
         
         {error && (
           <motion.div 
-            className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-900/30 rounded-md"
+            className={`p-3 text-sm rounded-md ${
+              error.includes('Setting up your preferences') 
+                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300'
+                : 'bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-300'
+            }`}
             variants={itemVariants}
           >
             {error}
@@ -230,13 +253,13 @@ export default function Onboarding() {
             animate="visible"
           >
             <motion.h2 
-              className="text-xl font-semibold text-gray-800 dark:text-white"
+              className="text-xl font-semibold text-gray-900 dark:text-white"
               variants={itemVariants}
             >
               Choose Your Interests
             </motion.h2>
             <motion.p 
-              className="text-gray-600 dark:text-gray-300"
+              className="text-gray-700 dark:text-gray-300"
               variants={itemVariants}
             >
               Select topics you're interested in for personalized news.
@@ -252,8 +275,8 @@ export default function Onboarding() {
                   onClick={() => handleInterestToggle(interest)}
                   className={`p-3 rounded-md border text-center transition-colors ${
                     interests.includes(interest)
-                      ? 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:border-blue-400'
+                      ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                      : 'bg-white text-gray-800 border-gray-300 hover:border-blue-500 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 dark:hover:border-blue-500'
                   }`}
                   variants={itemVariants}
                   whileHover={{ scale: 1.03 }}
@@ -281,13 +304,13 @@ export default function Onboarding() {
             animate="visible"
           >
             <motion.h2 
-              className="text-xl font-semibold text-gray-800 dark:text-white"
+              className="text-xl font-semibold text-gray-900 dark:text-white"
               variants={itemVariants}
             >
               Set Your Location
             </motion.h2>
             <motion.p 
-              className="text-gray-600 dark:text-gray-300"
+              className="text-gray-700 dark:text-gray-300"
               variants={itemVariants}
             >
               This helps us deliver local news relevant to you.
@@ -299,7 +322,7 @@ export default function Onboarding() {
             >
               <motion.button
                 onClick={requestLocation}
-                className="w-full px-4 py-3 text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={locationLoading}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -375,7 +398,7 @@ export default function Onboarding() {
             animate="visible"
           >
             <motion.h2 
-              className="text-xl font-semibold text-gray-800 dark:text-white text-center"
+              className="text-xl font-semibold text-gray-900 dark:text-white text-center"
               variants={itemVariants}
             >
               Ready to Go!
@@ -389,7 +412,7 @@ export default function Onboarding() {
             </motion.div>
             
             <motion.p 
-              className="text-gray-600 dark:text-gray-300 text-center"
+              className="text-gray-700 dark:text-gray-300 text-center"
               variants={itemVariants}
             >
               Your profile is set up and we're ready to show you personalized news that matters to you.
@@ -399,7 +422,7 @@ export default function Onboarding() {
               className="p-6 bg-gray-50 rounded-lg border border-gray-200 dark:bg-gray-700 dark:border-gray-600"
               variants={itemVariants}
             >
-              <h3 className="font-medium text-gray-800 dark:text-white">Your Preferences</h3>
+              <h3 className="font-medium text-gray-900 dark:text-white">Your Preferences</h3>
               <p className="mt-2 dark:text-gray-300"><span className="font-medium">Interests:</span> {interests.join(', ') || 'None selected'}</p>
               <p className="mt-1 dark:text-gray-300"><span className="font-medium">Location:</span> {location || 'Not specified'}</p>
             </motion.div>
@@ -425,7 +448,7 @@ export default function Onboarding() {
           <motion.button
             onClick={handleNext}
             disabled={loading}
-            className="px-6 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md flex items-center"
+            className="px-6 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md flex items-center"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >

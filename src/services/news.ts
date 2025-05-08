@@ -5,6 +5,7 @@ import { Article } from '../types';
 
 export interface UserPreferences {
   categories: string[];
+  interests?: string[];
   sources: string[];
   location: string;
 }
@@ -805,7 +806,7 @@ export const saveUserPreferences = async (userId: string, preferences: UserPrefe
       .from('user_preferences')
       .upsert({ 
         user_id: userId,
-        categories: preferences.categories,
+        interests: preferences.categories,
         sources: preferences.sources,
         location: preferences.location,
         updated_at: new Date().toISOString()
@@ -833,9 +834,9 @@ export const getUserPreferences = async (userId: string): Promise<{ preferences:
 
     return { 
       preferences: data ? {
-        categories: data.categories,
-        sources: data.sources,
-        location: data.location
+        categories: data.interests || [],
+        sources: data.sources || [],
+        location: data.location || ''
       } : null, 
       error: null 
     };

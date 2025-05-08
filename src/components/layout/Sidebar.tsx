@@ -35,19 +35,19 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-blue-50 dark:bg-slate-950">
       {/* User Profile Section */}
       {user && (
-        <div className="p-4 border-b">
+        <div className="p-4 border-b border-blue-200 dark:border-slate-800">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-full bg-blue-600 text-white flex items-center justify-center">
               <span className="text-lg font-semibold">
                 {user.email?.[0].toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{user.email}</p>
-              <p className="text-xs text-muted-foreground truncate">Free Plan</p>
+              <p className="text-xs text-blue-600 dark:text-blue-400 truncate">Free Plan</p>
             </div>
           </div>
         </div>
@@ -59,32 +59,33 @@ export default function Sidebar() {
           to="/feed"
           className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
             isActive('/feed')
-              ? 'bg-primary text-primary-foreground'
-              : 'hover:bg-accent'
+              ? 'bg-blue-600 text-white'
+              : 'hover:bg-blue-100 dark:hover:bg-slate-800'
           }`}
         >
           <Home className="h-5 w-5" />
           <span>Home</span>
         </Link>
 
+        {/* Link to Onboarding */}
         <Link
-          to="/local"
+          to="/onboarding"
           className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-            isActive('/local')
-              ? 'bg-primary text-primary-foreground'
-              : 'hover:bg-accent'
+            isActive('/onboarding')
+              ? 'bg-blue-600 text-white'
+              : 'hover:bg-blue-100 dark:hover:bg-slate-800'
           }`}
         >
-          <MapPin className="h-5 w-5" />
-          <span>Local News</span>
+          <Settings className="h-5 w-5" />
+          <span>Set Up Profile</span>
         </Link>
 
         <Link
           to="/latest"
           className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
             isActive('/latest')
-              ? 'bg-primary text-primary-foreground'
-              : 'hover:bg-accent'
+              ? 'bg-blue-600 text-white'
+              : 'hover:bg-blue-100 dark:hover:bg-slate-800'
           }`}
         >
           <Newspaper className="h-5 w-5" />
@@ -95,8 +96,8 @@ export default function Sidebar() {
           to="/saved"
           className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
             isActive('/saved')
-              ? 'bg-primary text-primary-foreground'
-              : 'hover:bg-accent'
+              ? 'bg-blue-600 text-white'
+              : 'hover:bg-blue-100 dark:hover:bg-slate-800'
           }`}
         >
           <Bookmark className="h-5 w-5" />
@@ -107,8 +108,8 @@ export default function Sidebar() {
           to="/history"
           className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
             isActive('/history')
-              ? 'bg-primary text-primary-foreground'
-              : 'hover:bg-accent'
+              ? 'bg-blue-600 text-white'
+              : 'hover:bg-blue-100 dark:hover:bg-slate-800'
           }`}
         >
           <Clock className="h-5 w-5" />
@@ -117,8 +118,8 @@ export default function Sidebar() {
       </nav>
 
       {/* Categories Section */}
-      <div className="p-4 border-t">
-        <h3 className="px-3 text-sm font-semibold text-muted-foreground mb-2">
+      <div className="p-4 border-t border-blue-200 dark:border-slate-800">
+        <h3 className="px-3 text-sm font-semibold text-blue-700 dark:text-blue-400 mb-2">
           Categories
         </h3>
         <div className="space-y-1">
@@ -130,8 +131,8 @@ export default function Sidebar() {
                 to={category.path}
                 className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   isActive(category.path)
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-accent'
+                    ? 'bg-blue-600 text-white'
+                    : 'hover:bg-blue-100 dark:hover:bg-slate-800'
                 }`}
               >
                 <Icon className="h-5 w-5" />

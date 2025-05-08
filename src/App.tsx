@@ -5,16 +5,15 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import MainLayout from './components/layout/MainLayout';
 import { useAuth } from './contexts/AuthContext';
+import Home from './pages/Home'; // Direct import for Home page
 
 // Lazy-loaded components
-const Home = lazy(() => import('./pages/Home'));
 const Auth = lazy(() => import('./pages/Auth'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const NewsFeed = lazy(() => import('./pages/NewsFeed'));
 const SearchResults = lazy(() => import('./pages/SearchResults'));
 const Profile = lazy(() => import('./pages/Profile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
-const LocalNews = lazy(() => import('./pages/LocalNews'));
 
 // Private route component to protect routes that require authentication
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -53,16 +52,6 @@ function App() {
                   <MainLayout>
                     <ErrorBoundary>
                       <NewsFeed />
-                    </ErrorBoundary>
-                  </MainLayout>
-                </PrivateRoute>
-              } />
-              
-              <Route path="/local" element={
-                <PrivateRoute>
-                  <MainLayout>
-                    <ErrorBoundary>
-                      <LocalNews />
                     </ErrorBoundary>
                   </MainLayout>
                 </PrivateRoute>
@@ -109,13 +98,8 @@ function AuthRedirect() {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
   
-  // If no user, redirect to the auth page
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-  
-  // If user exists, redirect to feed
-  return <Navigate to="/feed" replace />;
+  // Show the home page regardless of authentication status
+  return <Home />;
 }
 
 export default App; 
