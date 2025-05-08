@@ -806,7 +806,7 @@ export const saveUserPreferences = async (userId: string, preferences: UserPrefe
       .from('user_preferences')
       .upsert({ 
         user_id: userId,
-        interests: preferences.categories,
+        categories: preferences.categories,
         sources: preferences.sources,
         location: preferences.location,
         updated_at: new Date().toISOString()
@@ -834,7 +834,7 @@ export const getUserPreferences = async (userId: string): Promise<{ preferences:
 
     return { 
       preferences: data ? {
-        categories: data.interests || [],
+        categories: data.categories || [],
         sources: data.sources || [],
         location: data.location || ''
       } : null, 
