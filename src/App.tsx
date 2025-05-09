@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import type { FallbackProps } from 'react-error-boundary';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -17,6 +17,7 @@ const Home = lazy(() => import('./pages/Home'));
 const Auth = lazy(() => import('./pages/Auth'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const NewsFeed = lazy(() => import('./pages/NewsFeed'));
+const LocalNews = lazy(() => import('./pages/LocalNews'));
 const Profile = lazy(() => import('./pages/Profile'));
 const SearchResults = lazy(() => import('./pages/SearchResults'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -29,18 +30,108 @@ const SimpleErrorFallback = ({ error }: FallbackProps) => (
   </div>
 );
 
-function App() {
+// Loading fallback component
+function LoadingFallback() {
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Router>
-        <AuthProvider>
-          <ThemeProvider>
-            <AppContent />
-          </ThemeProvider>
-        </AuthProvider>
-      </Router>
+    <div className="flex h-screen w-full items-center justify-center">
+      <div className="flex flex-col items-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-blue-500"></div>
+        <p className="mt-4 text-gray-700">Loading...</p>
+      </div>
     </div>
   );
+}
+
+// Error fallback for component-level errors
+function ComponentErrorFallback({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) {
+  return (
+    <div className="m-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+      <h2 className="mb-2 text-lg font-semibold">Component Error:</h2>
+      <p className="mb-4">{error.message}</p>
+      <details className="mb-4">
+        <summary className="cursor-pointer font-medium">Technical Details</summary>
+        <pre className="mt-2 max-h-40 overflow-auto rounded bg-white p-2 text-xs">{error.stack}</pre>
+      </details>
+      <button
+        onClick={resetErrorBoundary}
+        className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+      >
+        Try Again
+      </button>
+    </div>
+  );
+}
+
+function App() {
+  useEffect(() => {
+    // Log app initialization
+    console.log('App component mounted');
+    
+    // Log if any required API is missing
+    const missingApis = [];
+    if (typeof window.localStorage === 'undefined') missingApis.push('localStorage');
+    if (typeof window.fetch === 'undefined') missingApis.push('fetch');
+    if (typeof window.IntersectionObserver === 'undefined') missingApis.push('IntersectionObserver');
+    
+    if (missingApis.length > 0) {
+      console.error('Missing browser APIs:', missingApis);
+    }
+    
+    return () => {
+      console.log('App component unmounted');
+    };
+  }, []);
+  
+  // Define the categories for the site
+  const categories = [
+    { name: 'Top Stories', key: '/' },
+    { name: 'Local', key: '/local' },
+    { name: 'Business', key: '/categories/business' },
+    { name: 'Technology', key: '/categories/technology' },
+    { name: 'Entertainment', key: '/categories/entertainment' },
+    { name: 'Sports', key: '/categories/sports' },
+    { name: 'Science', key: '/categories/science' },
+    { name: 'Health', key: '/categories/health' },
+  ];
+
+  // Try-catch for any fatal errors during routing
+  try {
+    return (
+      <ErrorBoundary 
+        FallbackComponent={ComponentErrorFallback}
+        onError={(error) => {
+          console.error('App-level error caught:', error);
+        }}
+      >
+        <div className="flex flex-col min-h-screen bg-background text-foreground">
+          <Router>
+            <AuthProvider>
+              <ThemeProvider>
+                <AppContent />
+              </ThemeProvider>
+            </AuthProvider>
+          </Router>
+        </div>
+      </ErrorBoundary>
+    );
+  } catch (error) {
+    console.error('Fatal error in App component:', error);
+    return (
+      <div className="m-8 rounded-lg border border-red-300 bg-red-50 p-6 text-red-800">
+        <h1 className="mb-4 text-2xl font-bold">Critical Application Error</h1>
+        <p className="mb-4">
+          The application encountered a fatal error and cannot continue. Please refresh the page.
+        </p>
+        <p className="font-medium">Error: {error instanceof Error ? error.message : String(error)}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+        >
+          Refresh Page
+        </button>
+      </div>
+    );
+  }
 }
 
 function AppContent() {
@@ -73,29 +164,18 @@ function AppContent() {
           {showHeader && <Header onMenuClick={handleMenuClick} />}
           <main className="flex-1 overflow-x-hidden bg-background">
             <ErrorBoundary FallbackComponent={SimpleErrorFallback}>
-              <Suspense fallback={<ActualPageLoader />}>
+              <Suspense fallback={<LoadingFallback />}>
                 <Routes>
-                  <Route path="/auth" element={<Auth />} />
                   <Route path="/" element={<Home />} />
-
+                  <Route path="/auth" element={<Auth />} />
                   <Route path="/onboarding" element={<Onboarding />} />
-                  <Route path="/feed" element={<NewsFeed />} />
-                  <Route path="/article/:id" element={<NotFound />} />
+                  <Route path="/categories/:category" element={<NewsFeed />} />
+                  <Route path="/local" element={<LocalNews />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/search" element={<SearchResults />} />
-                  <Route path="/latest" element={<NewsFeed />} />
-                  <Route path="/saved" element={<NotFound />} />
-                  <Route path="/history" element={<NotFound />} />
-
-                  {categories && categories.map(category => (
-                    <Route 
-                      key={category.key}
-                      path={`/category/${category.key}`} 
-                      element={<NewsFeed />} 
-                    />
-                  ))}
-
-                  <Route path="*" element={<NotFound />} />
+                  <Route path="/article/:id" element={<NewsFeed />} />
+                  <Route path="/404" element={<NotFound />} />
+                  <Route path="*" element={<Navigate to="/404" replace />} />
                 </Routes>
               </Suspense>
             </ErrorBoundary>
