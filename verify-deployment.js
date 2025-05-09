@@ -10,132 +10,131 @@
  *   node verify-deployment.js https://your-deploy-url.onrender.com
  */
 
-const axios = require('axios');
 const https = require('https');
+const readline = require('readline');
 
-// Create axios instance with longer timeout and SSL validation disabled for testing
-const api = axios.create({
-  timeout: 30000,
-  httpsAgent: new https.Agent({
-    rejectUnauthorized: false
-  })
+// Create readline interface for user input
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
 });
 
 // ANSI color codes for terminal output
 const colors = {
   reset: '\x1b[0m',
-  red: '\x1b[31m',
+  bright: '\x1b[1m',
+  dim: '\x1b[2m',
   green: '\x1b[32m',
   yellow: '\x1b[33m',
+  red: '\x1b[31m',
   blue: '\x1b[34m',
-  magenta: '\x1b[35m',
   cyan: '\x1b[36m'
 };
 
-// Get deployment URL from command line args
-const deploymentUrl = process.argv[2];
+// Print a styled header
+console.log(`\n${colors.bright}${colors.cyan}=== Newspaper.AI Deployment Verification ====${colors.reset}\n`);
 
-if (!deploymentUrl) {
-  console.error(`${colors.red}Error: Please provide the deployment URL as an argument.${colors.reset}`);
-  console.error(`Example: node verify-deployment.js https://newspaper-ai.onrender.com`);
-  process.exit(1);
-}
+// Ask for deployment URL
+rl.question(`${colors.yellow}Enter the deployment URL to verify (e.g., https://newspaper-ai.onrender.com): ${colors.reset}`, (deploymentUrl) => {
+  console.log(`\n${colors.blue}Verifying deployment at: ${deploymentUrl}${colors.reset}\n`);
+  
+  // Remove trailing slash if present
+  deploymentUrl = deploymentUrl.endsWith('/') ? deploymentUrl.slice(0, -1) : deploymentUrl;
 
-// Tests to run on the deployment
-const tests = [
-  {
-    name: 'Home Page',
-    run: async () => {
-      const response = await api.get(deploymentUrl);
-      if (response.status !== 200) throw new Error(`Unexpected status code: ${response.status}`);
-      if (!response.data.includes('html')) throw new Error('Response doesn\'t contain HTML');
-      return true;
-    }
-  },
-  {
-    name: 'Static Assets',
-    run: async () => {
-      // Check if CSS loads properly
-      const cssResponse = await api.get(`${deploymentUrl}/assets/index-B-BcZZbu.css`, {
-        validateStatus: () => true
-      });
+  // Check responses from various endpoints
+  const endpoints = [
+    { path: '/', name: 'Home page' },
+    { path: '/auth', name: 'Auth page' },
+    { path: '/news', name: 'News feed page' },
+    { path: '/profile', name: 'Profile page' },
+    { path: '/search', name: 'Search page' },
+    { path: '/assets/index.css', name: 'CSS assets', expectType: 'text/css' },
+    { path: '/assets/index.js', name: 'JS assets', expectType: 'application/javascript' }
+  ];
+
+  let completedChecks = 0;
+  let successfulChecks = 0;
+
+  // Function to make HTTP requests
+  function checkEndpoint(endpoint) {
+    const url = `${deploymentUrl}${endpoint.path}`;
+    
+    console.log(`${colors.dim}Testing: ${url}${colors.reset}`);
+    
+    https.get(url, (res) => {
+      const { statusCode } = res;
+      const contentType = res.headers['content-type'];
       
-      // If this specific CSS file doesn't exist, try getting any CSS file
-      if (cssResponse.status !== 200) {
-        const mainPageResponse = await api.get(deploymentUrl);
-        const cssMatch = mainPageResponse.data.match(/href="\/assets\/index-.*?\.css"/);
-        if (!cssMatch) throw new Error('No CSS file found in the HTML');
-        
-        const cssPath = cssMatch[0].split('"')[1];
-        const altCssResponse = await api.get(`${deploymentUrl}${cssPath}`);
-        if (altCssResponse.status !== 200) throw new Error('Failed to load CSS file');
+      let success = false;
+      let message = '';
+      
+      // Check if status code is successful (200-299)
+      if (statusCode >= 200 && statusCode < 300) {
+        if (endpoint.expectType && !contentType.includes(endpoint.expectType)) {
+          message = `${colors.yellow}⚠️ WARNING: ${endpoint.name} returned unexpected content type: ${contentType}${colors.reset}`;
+        } else {
+          success = true;
+          message = `${colors.green}✅ SUCCESS: ${endpoint.name} (${statusCode})${colors.reset}`;
+          successfulChecks++;
+        }
+      } else if (statusCode === 301 || statusCode === 302) {
+        // Redirects are OK for some routes
+        success = true;
+        message = `${colors.green}✅ SUCCESS: ${endpoint.name} - Redirect (${statusCode}) to ${res.headers.location}${colors.reset}`;
+        successfulChecks++;
+      } else {
+        message = `${colors.red}❌ FAILED: ${endpoint.name} - Status code: ${statusCode}${colors.reset}`;
       }
       
-      return true;
-    }
-  },
-  {
-    name: 'SPA Routing',
-    run: async () => {
-      // Test that routes return the main app (SPA routing)
-      const response = await api.get(`${deploymentUrl}/auth`, {
-        headers: { 'Accept': 'text/html' },
-        validateStatus: () => true
-      });
+      console.log(message);
       
-      // Even though the route doesn't exist server-side, it should return the index.html
-      // so the client-side router can handle it
-      if (response.status !== 200) throw new Error(`Unexpected status code: ${response.status}`);
-      if (!response.data.includes('html')) throw new Error('Response doesn\'t contain HTML');
+      res.resume(); // Consume response data to free up memory
       
-      return true;
-    }
+      completedChecks++;
+      if (completedChecks === endpoints.length) {
+        summarizeResults(successfulChecks, endpoints.length);
+      }
+    }).on('error', (e) => {
+      console.log(`${colors.red}❌ FAILED: ${endpoint.name} - ${e.message}${colors.reset}`);
+      completedChecks++;
+      if (completedChecks === endpoints.length) {
+        summarizeResults(successfulChecks, endpoints.length);
+      }
+    });
   }
-];
-
-// Run verification tests
-async function runTests() {
-  console.log(`\n${colors.blue}===============================================${colors.reset}`);
-  console.log(`${colors.blue}  Verifying Newspaper.AI Deployment${colors.reset}`);
-  console.log(`${colors.blue}  URL: ${deploymentUrl}${colors.reset}`);
-  console.log(`${colors.blue}===============================================${colors.reset}\n`);
-
-  let allPassed = true;
   
-  for (const test of tests) {
-    process.stdout.write(`${colors.cyan}Testing ${test.name}...${colors.reset} `);
+  // Function to summarize results
+  function summarizeResults(successful, total) {
+    console.log(`\n${colors.bright}==== Verification Summary ====${colors.reset}`);
     
-    try {
-      await test.run();
-      console.log(`${colors.green}PASSED${colors.reset}`);
-    } catch (error) {
-      console.log(`${colors.red}FAILED${colors.reset}`);
-      console.log(`  ${colors.red}Error: ${error.message}${colors.reset}`);
-      allPassed = false;
+    const percentage = Math.round((successful / total) * 100);
+    let summaryColor = colors.red;
+    let summaryMessage = 'Critical issues found!';
+    
+    if (percentage === 100) {
+      summaryColor = colors.green;
+      summaryMessage = 'All checks passed successfully!';
+    } else if (percentage >= 75) {
+      summaryColor = colors.yellow;
+      summaryMessage = 'Some issues detected.';
     }
+    
+    console.log(`${summaryColor}${successful} of ${total} checks passed (${percentage}%) - ${summaryMessage}${colors.reset}`);
+    
+    console.log(`\n${colors.bright}Next steps:${colors.reset}`);
+    if (percentage < 100) {
+      console.log(`${colors.yellow}1. Check server logs in the Render dashboard${colors.reset}`);
+      console.log(`${colors.yellow}2. Verify all environment variables are set correctly${colors.reset}`);
+      console.log(`${colors.yellow}3. Ensure the build process completed successfully${colors.reset}`);
+    } else {
+      console.log(`${colors.green}1. Manually test key user flows${colors.reset}`);
+      console.log(`${colors.green}2. Test with different device sizes${colors.reset}`);
+      console.log(`${colors.green}3. Set up monitoring for your production app${colors.reset}`);
+    }
+    
+    rl.close();
   }
-
-  console.log(`\n${colors.blue}===============================================${colors.reset}`);
   
-  if (allPassed) {
-    console.log(`${colors.green}All tests passed! Your deployment appears to be working correctly.${colors.reset}`);
-  } else {
-    console.log(`${colors.red}Some tests failed. Please check the deployment logs and errors above.${colors.reset}`);
-  }
-  
-  console.log(`${colors.blue}===============================================${colors.reset}\n`);
-
-  // Additional verification instructions
-  console.log(`${colors.magenta}Next Steps:${colors.reset}`);
-  console.log(`1. Manually verify the site by visiting ${deploymentUrl}`);
-  console.log(`2. Test user authentication and profile creation`);
-  console.log(`3. Ensure news content loads correctly`);
-  console.log(`4. Verify that dark mode toggle works`);
-  console.log(`5. Test the search functionality\n`);
-}
-
-// Execute tests
-runTests().catch(error => {
-  console.error(`${colors.red}Error running tests: ${error.message}${colors.reset}`);
-  process.exit(1);
+  // Start verification
+  endpoints.forEach(endpoint => checkEndpoint(endpoint));
 }); 

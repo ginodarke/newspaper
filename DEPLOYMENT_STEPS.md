@@ -21,7 +21,7 @@ You can deploy to Render using either:
 Ensure your repository contains:
 - The `render.yaml` file (already included in your repo)
 - A valid `package.json` with build and start scripts
-- The `server.js` file for serving the built application
+- The `server.js` file for serving the built application (this file is crucial - it serves your SPA and handles routing)
 
 ### Step 2: Connect to Render
 
@@ -110,7 +110,13 @@ Click "Create Web Service" and Render will begin the deployment process.
 
 After deployment, verify the following:
 
-1. Visit your Render URL (e.g., `https://newspaper-ai.onrender.com`)
+1. Run the verification script to automatically check key endpoints:
+   ```
+   node verify-deployment.js
+   ```
+   This script will test multiple routes and report any issues.
+
+2. Visit your Render URL (e.g., `https://newspaper-ai.onrender.com`)
 2. Ensure the home page loads with the modern UI design
 3. Test user flow:
    - Browsing without logging in
@@ -123,6 +129,12 @@ After deployment, verify the following:
 ## Troubleshooting
 
 ### Common Issues:
+
+#### "Application Error" on Render
+- Check if `server.js` exists and is properly configured
+- Verify that the start command in render.yaml is correctly set to `npm start`
+- Check the Render logs for detailed error messages
+- Make sure express and compression packages are installed
 
 #### Build Failures
 - Check for missing dependencies in package.json

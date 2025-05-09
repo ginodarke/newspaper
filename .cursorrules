@@ -24,6 +24,7 @@
 - When encountering Supabase schema errors, implement graceful fallbacks and user-friendly error messages that don't alarm users with technical details
 - When working with Supabase, make sure your database field names in code match the actual column names in the database schema - mismatches like using 'interests' in code when the database column is named 'categories' will cause errors
 - When deploying SPA React applications to Render, set the rewrite rule destination to '/index.html' instead of just '/' to ensure proper routing for direct URL access and page refreshes
+- When deploying to Render, use `npm start` as the startCommand rather than directly calling `node server.js` to ensure proper script execution and environment variable access
 
 ## Scratchpad
 
