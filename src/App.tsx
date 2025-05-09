@@ -13,6 +13,7 @@ import Sidebar, { categories } from './components/layout/Sidebar';
 import ActualPageLoader from './components/LoadingSpinner';
 
 // Page components (lazy-loaded)
+const Home = lazy(() => import('./pages/Home'));
 const Auth = lazy(() => import('./pages/Auth'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const NewsFeed = lazy(() => import('./pages/NewsFeed'));
@@ -50,7 +51,7 @@ function AppContent() {
     console.log("Menu button clicked - placeholder function");
   };
 
-  const showSidebar = user && !['/auth', '/onboarding'].includes(location.pathname);
+  const showSidebar = user && !['/auth', '/onboarding', '/'].includes(location.pathname);
   const showHeader = !['/auth', '/onboarding'].includes(location.pathname);
 
   if (loading) {
@@ -75,7 +76,7 @@ function AppContent() {
               <Suspense fallback={<ActualPageLoader />}>
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
-                  <Route path="/" element={<Navigate to="/feed" replace />} />
+                  <Route path="/" element={<Home />} />
 
                   <Route path="/onboarding" element={<Onboarding />} />
                   <Route path="/feed" element={<NewsFeed />} />

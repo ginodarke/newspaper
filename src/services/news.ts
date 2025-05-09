@@ -31,8 +31,74 @@ function getFormattedDate(daysAgo: number): string {
   return date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
 }
 
-// Function to get real articles from multiple APIs
-export async function getArticles(category: string | null = null, userLocation?: LocationData): Promise<Article[]> {
+// Updated getArticles function to support pagination and more options
+export interface GetArticlesOptions {
+  page?: number;
+  pageSize?: number;
+  userPreferences?: UserPreferences;
+  location?: LocationData;
+  category?: string | null;
+}
+
+export interface ArticlesResponse {
+  articles: Article[];
+  totalResults: number;
+}
+
+// Function to get articles with pagination and enhanced options
+export async function getArticles(options: GetArticlesOptions): Promise<ArticlesResponse> {
+  try {
+    const page = options.page || 1;
+    const pageSize = options.pageSize || 10;
+    const category = options.category || (options.userPreferences?.categories?.[0] || null);
+    const userLocation = options.location;
+    
+    console.log(`Fetching articles: page=${page}, pageSize=${pageSize}, category=${category || 'All'}`);
+    
+    // First try to get real articles using our existing function
+    try {
+      const articlesArray = await getArticlesOld(category, userLocation);
+      
+      // Calculate pagination
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      const paginatedArticles = articlesArray.slice(start, end);
+      
+      return {
+        articles: paginatedArticles,
+        totalResults: articlesArray.length
+      };
+    } catch (error) {
+      console.error('Error fetching real articles, falling back to mocks:', error);
+    }
+    
+    // Fall back to mock data if real API calls fail
+    const mockArticles = getMockArticles();
+    const filteredMocks = category 
+      ? mockArticles.filter(article => article.category === category)
+      : mockArticles;
+    
+    // Calculate pagination
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    const paginatedArticles = filteredMocks.slice(start, end);
+    
+    return {
+      articles: paginatedArticles,
+      totalResults: filteredMocks.length
+    };
+  } catch (error) {
+    console.error('Error in getArticles:', error);
+    // Ultimate fallback - return empty array with error
+    return {
+      articles: [],
+      totalResults: 0
+    };
+  }
+}
+
+// Rename the old getArticles function to getArticlesOld for backward compatibility
+export async function getArticlesOld(category: string | null = null, userLocation?: LocationData): Promise<Article[]> {
   try {
     console.log(`Fetching articles for category: ${category || 'All'}, location: ${userLocation ? JSON.stringify(userLocation) : 'None'}`);
     
@@ -74,19 +140,12 @@ export async function getArticles(category: string | null = null, userLocation?:
         console.error(`Error fetching from ${api.name}:`, error);
       }
     }
-
-    // If all APIs fail, use mock data as fallback, but ensure they look current
-    console.warn('All news APIs failed, using enhanced mock data as fallback');
-    let mockArticles = getFilteredMockArticles(category);
     
-    // Add mock location relevance to mock articles
-    if (userLocation) {
-      mockArticles = await enhanceArticlesWithAI(mockArticles, userLocation);
-    }
-    
-    return mockArticles;
+    // If we've made it here, all APIs failed, use fallback data
+    console.log('All API attempts failed, using mock data');
+    return getFilteredMockArticles(category);
   } catch (error) {
-    console.error('Error fetching articles:', error);
+    console.error('Error in getArticles:', error);
     return getFilteredMockArticles(category);
   }
 }

@@ -1,164 +1,175 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 import { Article } from '../types';
-import { getAISummary } from '../services/news';
-import LoadingSpinner from './LoadingSpinner';
+import { Clock, Share2, Bookmark, ExternalLink, FileText, Cpu, ChevronDown, ChevronUp, UserCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ArticleCardProps {
   article: Article;
-  onSave?: (articleId: string) => void;
-  onShare?: (articleId: string) => void;
-  onClick?: () => void;
+  isMainFeatured?: boolean;
+  withBorder?: boolean;
 }
 
-export default function ArticleCard({ article, onSave, onShare, onClick }: ArticleCardProps) {
-  const [activeTab, setActiveTab] = useState('article');
-  const [aiSummary, setAiSummary] = useState<string | null>(null);
-  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
-
-  const handleTabChange = async (value: string) => {
-    setActiveTab(value);
-    if (value === 'ai' && !aiSummary && !isLoadingSummary) {
-      try {
-        setIsLoadingSummary(true);
-        setSummaryError(null);
-        const summary = await getAISummary(article);
-        setAiSummary(summary);
-      } catch (error) {
-        console.error('Error getting AI summary:', error);
-        setSummaryError('Failed to get AI summary. Please try again later.');
-      } finally {
-        setIsLoadingSummary(false);
-      }
-    }
-  };
-
-  const truncateText = (text: string, maxLength: number) => {
-    if (!text) return '';
-    return text.length > maxLength 
-      ? text.substring(0, maxLength) + '...' 
-      : text;
-  };
+export default function ArticleCard({ article, isMainFeatured = false, withBorder = true }: ArticleCardProps) {
+  const [activeTab, setActiveTab] = useState<'article' | 'ai'>('article');
+  const [isPersonalEffectOpen, setIsPersonalEffectOpen] = useState(false);
 
   const formattedDate = article.publishedAt 
-    ? new Date(article.publishedAt).toLocaleDateString()
+    ? formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true }) 
     : 'Recently';
 
+  const generatePersonalEffect = (article: Article) => {
+    // This would ideally come from an AI service based on user profile
+    // For now, we'll generate it based on article category and content
+    const category = article.category || "general";
+    
+    const effects = {
+      business: "This could impact your investments or career opportunities in related sectors.",
+      technology: "This technology trend might affect your digital lifestyle or future tech purchases.",
+      entertainment: "This content might influence your entertainment choices or social conversations.",
+      sports: "This could affect your favorite teams or upcoming sports events you follow.",
+      health: "These health findings might be relevant to your wellness routine or medical considerations.",
+      science: "These scientific developments could shape future technologies you'll interact with.",
+      general: "This news may affect your general awareness and perspectives on current events."
+    };
+    
+    return effects[category as keyof typeof effects] || effects.general;
+  };
+
   return (
-    <div className="h-full flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer border rounded-lg bg-card text-card-foreground shadow" onClick={onClick}>
-      <div className="py-4 px-5 border-b">
-        <div className="flex justify-between items-start mb-2">
-          <div className="bg-primary/10 text-primary text-xs rounded-full px-2 py-1">
-            {article.source || 'News'}
-          </div>
-          <span className="text-sm text-muted-foreground">{formattedDate}</span>
-        </div>
-        <h3 className="text-lg font-bold leading-tight line-clamp-2 hover:text-primary transition-colors">
-          {article.title}
-        </h3>
-      </div>
-      
+    <motion.div 
+      className={`bg-card rounded-xl ${withBorder ? 'border border-border' : ''} overflow-hidden shadow-md hover:shadow-lg transition-shadow flex flex-col h-full`}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Article Image */}
       {article.imageUrl && (
-        <div className="aspect-video relative overflow-hidden">
+        <div className="relative w-full aspect-video overflow-hidden">
           <img 
             src={article.imageUrl} 
-            alt={article.title}
-            className="object-cover w-full h-full transform hover:scale-105 transition-transform duration-300"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-            }}
+            alt={article.title || 'Article image'} 
+            className="object-cover w-full h-full transform hover:scale-105 transition-transform duration-500"
+            onError={(e) => (e.currentTarget.src = '/placeholder-news.jpg')}
           />
+          {article.source && (
+            <span className="absolute top-2 left-2 bg-primary/90 text-primary-foreground text-xs font-medium px-2 py-1 rounded-md">
+              {article.source}
+            </span>
+          )}
         </div>
       )}
-      
-      <div className="flex-grow p-4">
-        <div className="w-full mb-2">
-          <div className="grid w-full grid-cols-2 mb-2 border rounded-lg overflow-hidden">
-            <button 
-              className={`py-2 text-center text-sm ${activeTab === 'article' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
-              onClick={() => handleTabChange('article')}
-            >
-              Article
+
+      <div className="flex-1 flex flex-col p-4">
+        {/* Article Header */}
+        <div className="mb-3">
+          <h3 className={`font-bold tracking-tight text-foreground ${isMainFeatured ? 'text-2xl' : 'text-xl'} leading-tight`}>
+            {article.title}
+          </h3>
+          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            <span>{formattedDate}</span>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b border-border mb-3">
+          <button 
+            className={`flex items-center justify-center px-4 py-2 text-sm font-medium transition-colors relative ${
+              activeTab === 'article' 
+                ? 'text-primary border-b-2 border-primary -mb-px' 
+                : 'text-muted-foreground hover:text-primary'
+            }`}
+            onClick={() => setActiveTab('article')}
+          >
+            <FileText className="w-4 h-4 mr-1" />
+            Article
+          </button>
+          <button 
+            className={`flex items-center justify-center px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'ai' 
+                ? 'text-primary border-b-2 border-primary -mb-px' 
+                : 'text-muted-foreground hover:text-primary'
+            }`}
+            onClick={() => setActiveTab('ai')}
+          >
+            <Cpu className="w-4 h-4 mr-1" />
+            AI Summary
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="mb-4 flex-1">
+          {activeTab === 'article' ? (
+            <p className="text-foreground text-sm">
+              {article.description || 'No description available for this article.'}
+            </p>
+          ) : (
+            <div className="bg-secondary/5 p-3 rounded-md border border-secondary/10 text-sm">
+              {article.aiSummary ? (
+                <p className="text-foreground">{article.aiSummary}</p>
+              ) : (
+                <div className="text-muted-foreground italic flex items-center gap-1">
+                  <Cpu className="w-4 h-4" />
+                  AI summary not available for this article.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Personal Effect Section */}
+        <div className="mt-auto">
+          <button 
+            onClick={() => setIsPersonalEffectOpen(!isPersonalEffectOpen)}
+            className="w-full flex items-center justify-between text-sm py-2 px-3 bg-primary/5 hover:bg-primary/10 rounded-md text-primary transition-colors"
+          >
+            <div className="flex items-center">
+              <UserCircle className="w-4 h-4 mr-2" />
+              <span>Personal Effect</span>
+            </div>
+            {isPersonalEffectOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          
+          <AnimatePresence>
+            {isPersonalEffectOpen && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-2 p-3 bg-background border border-border rounded-md text-sm text-muted-foreground">
+                  {generatePersonalEffect(article)}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Action Bar */}
+        <div className="flex justify-between items-center mt-4 pt-3 border-t border-border">
+          <div className="flex items-center space-x-2">
+            <button className="p-1.5 rounded-md hover:bg-primary/10 text-primary transition-colors">
+              <Bookmark className="h-4 w-4" />
             </button>
-            <button 
-              className={`py-2 text-center text-sm ${activeTab === 'ai' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
-              onClick={() => handleTabChange('ai')}
-            >
-              AI Summary
+            <button className="p-1.5 rounded-md hover:bg-primary/10 text-primary transition-colors">
+              <Share2 className="h-4 w-4" />
             </button>
           </div>
           
-          <div className="mt-2 min-h-[80px]">
-            {activeTab === 'article' && (
-              <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
-                {article.description || 'No description available'}
-              </p>
-            )}
-            
-            {activeTab === 'ai' && (
-              <>
-                {isLoadingSummary ? (
-                  <div className="flex items-center justify-center py-4">
-                    <LoadingSpinner size="small" />
-                  </div>
-                ) : summaryError ? (
-                  <div className="text-sm text-red-500 py-2">{summaryError}</div>
-                ) : aiSummary ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
-                      {truncateText(aiSummary, 180)}
-                    </p>
-                  </motion.div>
-                ) : (
-                  <p className="text-sm text-gray-500 italic">Click to generate AI summary</p>
-                )}
-              </>
-            )}
-          </div>
+          <a 
+            href={article.url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+          >
+            Read Full Article
+            <ExternalLink className="h-3 w-3 ml-1" />
+          </a>
         </div>
       </div>
-      
-      <div className="flex justify-between items-center py-3 px-5 border-t">
-        {onSave && (
-          <button 
-            className="inline-flex items-center px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSave(article.id);
-            }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-            </svg>
-            Save
-          </button>
-        )}
-        
-        {onShare && (
-          <button 
-            className="inline-flex items-center px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-            onClick={(e) => {
-              e.stopPropagation();
-              onShare(article.id);
-            }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
-              <circle cx="18" cy="5" r="3"></circle>
-              <circle cx="6" cy="12" r="3"></circle>
-              <circle cx="18" cy="19" r="3"></circle>
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-            </svg>
-            Share
-          </button>
-        )}
-      </div>
-    </div>
+    </motion.div>
   );
 } 

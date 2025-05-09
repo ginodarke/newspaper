@@ -1,11 +1,15 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
-import { getNews, getArticles } from '../services/news';
-import ArticleCard from '../components/ArticleCard';
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { RefreshCw, AlertCircle } from 'lucide-react';
+
 import { Article } from '../types';
-import { getUserLocationFromPreferences } from '../services/news';
+import ArticleCard from '../components/ArticleCard';
+import ArticleDetail from '../components/ArticleDetail';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { getArticles } from '../services/news';
+import { getUserLocation } from '../services/location';
+import { useAuth } from '../hooks/useAuth';
 
 export default function NewsFeed() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -13,215 +17,228 @@ export default function NewsFeed() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const { user } = useAuth();
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   
-  const ARTICLES_PER_PAGE = 12;
+  const articlesPerPage = 9;
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    loadArticles();
-  }, []);
-
-  const loadArticles = async () => {
+  const loadArticles = async (page = 1) => {
     try {
       setLoading(true);
+      setError(null);
       
-      // Try to get user location from preferences for personalized content
-      let userLocation = undefined;
-      if (user) {
-        try {
-          const locationData = await getUserLocationFromPreferences(user.id);
-          if (locationData) {
-            userLocation = locationData;
-          }
-        } catch (err) {
-          console.error('Error getting user location from preferences:', err);
-        }
-      }
+      // Get user location for local news
+      const locationData = await getUserLocation();
       
-      // Get articles based on user preferences
-      const newArticles = await getArticles(null, userLocation);
+      // Get articles based on user preferences and/or location
+      const response = await getArticles({
+        page,
+        pageSize: articlesPerPage,
+        userPreferences: user ? {
+          categories: user.preferences?.categories || ['general'],
+          sources: user.preferences?.sources || [],
+          interests: user.preferences?.interests || [],
+          location: locationData?.formattedAddress || ''
+        } : undefined,
+        location: locationData
+      });
       
-      setArticles(newArticles);
-      setTotalPages(Math.ceil(newArticles.length / ARTICLES_PER_PAGE));
+      setArticles(response.articles);
+      setTotalPages(Math.ceil(response.totalResults / articlesPerPage));
+      setCurrentPage(page);
     } catch (err) {
-      setError('Failed to load articles. Please try again later.');
       console.error('Error loading articles:', err);
+      setError('Failed to load articles. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
-
-  const handleSave = async (articleId: string) => {
-    // Implement save functionality
-    console.log('Save article:', articleId);
-  };
-
-  const handleShare = async (articleId: string) => {
-    // Implement share functionality
-    console.log('Share article:', articleId);
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
   
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadArticles(1);
+    setRefreshing(false);
   };
-  
-  // Get current articles for the page
-  const indexOfLastArticle = currentPage * ARTICLES_PER_PAGE;
-  const indexOfFirstArticle = indexOfLastArticle - ARTICLES_PER_PAGE;
-  const currentArticles = articles.slice(indexOfFirstArticle, indexOfLastArticle);
 
-  if (error) {
+  useEffect(() => {
+    loadArticles();
+  }, [user]);
+
+  const handlePageChange = (page: number) => {
+    loadArticles(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSaveArticle = (articleId: string) => {
+    // In a real app, this would save the article to the user's saved articles
+    console.log(`Saving article ${articleId}`);
+  };
+
+  const handleShareArticle = (articleId: string) => {
+    // In a real app, this would share the article
+    console.log(`Sharing article ${articleId}`);
+  };
+
+  const handleArticleClick = (article: Article) => {
+    setSelectedArticle(article);
+  };
+
+  const handleCloseArticleDetail = () => {
+    setSelectedArticle(null);
+  };
+
+  // Display loading state
+  if (loading && !refreshing) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold text-red-600 mb-2">Error</h2>
-          <p className="text-muted-foreground">{error}</p>
-          <button
-            onClick={() => {
-              setError(null);
-              loadArticles();
-            }}
-            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-          >
-            Try Again
-          </button>
-        </div>
+      <div className="flex flex-col items-center justify-center py-20">
+        <LoadingSpinner size="large" />
+        <p className="mt-4 text-muted-foreground">Loading your personalized news feed...</p>
       </div>
     );
   }
 
+  // Display error state
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+        <div className="bg-destructive/10 p-4 rounded-full mb-4">
+          <AlertCircle className="h-8 w-8 text-destructive" />
+        </div>
+        <h2 className="text-2xl font-bold mb-3">Failed to Load News</h2>
+        <p className="text-muted-foreground mb-6 max-w-md">{error}</p>
+        <button 
+          onClick={handleRefresh}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  // Render news feed
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
-      <h1 className="text-3xl font-bold">Your News Feed</h1>
-      
-      {/* Loading State */}
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-12">
-          <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-          <p className="text-muted-foreground">Loading articles...</p>
+    <div className="w-full max-w-7xl mx-auto px-4 py-8">
+      {/* Page Header */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Today's News</h1>
+          <p className="text-muted-foreground">
+            {user ? 'Personalized for you' : 'Trending news stories'}
+            {!user && (
+              <button 
+                onClick={() => navigate('/auth')} 
+                className="ml-2 text-primary hover:underline"
+              >
+                Sign in for personalized news
+              </button>
+            )}
+          </p>
+        </div>
+        <button 
+          onClick={handleRefresh} 
+          disabled={refreshing}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+        >
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
+      </div>
+
+      {/* Featured Articles */}
+      {articles.length > 0 && (
+        <div className="mb-12">
+          <h2 className="text-xl font-semibold mb-6">Featured Stories</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Featured Article */}
+            {articles[0] && (
+              <div className="lg:col-span-2">
+                <ArticleCard 
+                  article={articles[0]} 
+                  isMainFeatured={true}
+                />
+              </div>
+            )}
+            
+            {/* Secondary Featured Articles */}
+            <div className="grid grid-cols-1 gap-6">
+              {articles.slice(1, 3).map((article) => (
+                <ArticleCard 
+                  key={article.id}
+                  article={article}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       )}
-      
-      {/* Featured Articles Section */}
-      {!loading && currentArticles.length > 0 && currentPage === 1 && (
-        <section>
-          <h2 className="text-2xl font-bold mb-6">Featured Articles</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-            <AnimatePresence>
-              {currentArticles.slice(0, 2).map((article) => (
-                <motion.div
-                  key={article.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="lg:col-span-1"
-                >
-                  <ArticleCard
-                    article={article}
-                    onSave={handleSave}
-                    onShare={handleShare}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        </section>
-      )}
 
-      {/* All Articles Section */}
-      {!loading && currentArticles.length > 0 && (
-        <section>
-          <h2 className="text-2xl font-bold mb-6">
-            {currentPage === 1 ? "Latest Articles" : `Page ${currentPage}`}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AnimatePresence>
-              {(currentPage === 1 ? currentArticles.slice(2) : currentArticles).map((article) => (
-                <motion.div
-                  key={article.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <ArticleCard
-                    article={article}
-                    onSave={handleSave}
-                    onShare={handleShare}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+      {/* All Articles */}
+      <div>
+        <h2 className="text-xl font-semibold mb-6">Latest News</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {articles.slice(3).map((article) => (
+            <ArticleCard 
+              key={article.id} 
+              article={article} 
+            />
+          ))}
+        </div>
+        
+        {/* Empty State */}
+        {articles.length === 0 && (
+          <div className="text-center py-16 bg-card border border-border rounded-lg">
+            <h3 className="text-xl font-medium mb-2">No articles found</h3>
+            <p className="text-muted-foreground mb-6">Try refreshing or adjusting your preferences</p>
+            <button 
+              onClick={handleRefresh}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            >
+              Refresh
+            </button>
           </div>
-        </section>
-      )}
+        )}
+      </div>
 
-      {/* Pagination Controls */}
-      {!loading && currentArticles.length > 0 && (
-        <div className="flex justify-center items-center mt-8 space-x-2">
-          <button
-            onClick={handlePrevPage}
-            disabled={currentPage === 1}
-            className="p-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          
-          <div className="flex items-center space-x-2">
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-12">
+          <div className="flex gap-2">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}
-                onClick={() => {
-                  setCurrentPage(page);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className={`px-3 py-1 rounded-md ${
+                onClick={() => handlePageChange(page)}
+                className={`w-10 h-10 rounded-md flex items-center justify-center transition-colors ${
                   currentPage === page
-                    ? 'bg-primary text-white'
-                    : 'border border-gray-300 hover:bg-gray-100'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-card hover:bg-primary/10 text-foreground'
                 }`}
               >
                 {page}
               </button>
             ))}
           </div>
-          
-          <button
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages}
-            className="p-2 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
         </div>
       )}
-      
-      {/* Empty State */}
-      {!loading && currentArticles.length === 0 && !error && (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="bg-gray-100 dark:bg-gray-800 p-8 rounded-lg max-w-md">
-            <h2 className="text-xl font-semibold mb-4">No Articles Found</h2>
-            <p className="text-muted-foreground mb-6">
-              We couldn't find any articles that match your preferences. Try updating your interests in your profile.
-            </p>
-            <button
-              onClick={loadArticles}
-              className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-            >
-              Refresh
-            </button>
-          </div>
+
+      {/* Article Detail Modal */}
+      {selectedArticle && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-background rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+          >
+            <ArticleDetail 
+              article={selectedArticle}
+              onClose={handleCloseArticleDetail}
+              onSave={handleSaveArticle}
+              onShare={() => handleShareArticle(selectedArticle.id)}
+            />
+          </motion.div>
         </div>
       )}
     </div>

@@ -113,4 +113,14 @@ export const formatLocationForDisplay = (location: LocationData): string => {
   } else {
     return `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`;
   }
+};
+
+// Helper function to get user location - this is the main function for use throughout the app
+export const getUserLocation = async (): Promise<LocationData | undefined> => {
+  try {
+    return await getCompleteLocationData();
+  } catch (error) {
+    console.error('Error getting user location:', error);
+    return undefined;
+  }
 }; 
