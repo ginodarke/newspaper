@@ -26,6 +26,7 @@
 - When deploying SPA React applications to Render, set the rewrite rule destination to '/index.html' instead of just '/' to ensure proper routing for direct URL access and page refreshes
 - When deploying to Render, use `npm start` as the startCommand rather than directly calling `node server.js` to ensure proper script execution and environment variable access
 - When deploying large React applications with Three.js to Render, increase memory limits with NODE_OPTIONS="--max_old_space_size=3072" and create a fallback build script for more resilient deployments
+- When deploying Node.js servers, avoid direct or indirect dependencies on iconv-lite version 0.4.24 which has compatibility issues with Node.js 18.x - either upgrade the package or remove dependencies that rely on it
 
 ## Scratchpad
 
