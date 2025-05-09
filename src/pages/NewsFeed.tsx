@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 
@@ -7,7 +7,7 @@ import { Article } from '../types';
 import ArticleCard from '../components/ArticleCard';
 import ArticleDetail from '../components/ArticleDetail';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { getArticles } from '../services/news';
+import { getArticles, getArticleById } from '../services/news';
 import { getUserLocation } from '../services/location';
 import { useAuth } from '../hooks/useAuth';
 
@@ -23,222 +23,198 @@ export default function NewsFeed() {
   const articlesPerPage = 9;
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { id: articleId, category } = useParams<{ id?: string, category?: string }>();
 
-  const loadArticles = async (page = 1) => {
+  // Load articles when component mounts
+  useEffect(() => {
+    loadArticles();
+  }, [category]);
+
+  // Handle article ID in URL
+  useEffect(() => {
+    if (articleId) {
+      loadArticleById(articleId);
+    }
+  }, [articleId]);
+
+  // Load article by ID
+  const loadArticleById = async (id: string) => {
+    try {
+      setLoading(true);
+      const article = await getArticleById(id);
+      if (article) {
+        setSelectedArticle(article);
+      } else {
+        setError(`Article with ID ${id} not found`);
+        navigate('/404');
+      }
+    } catch (err) {
+      setError('Error loading article');
+      console.error('Error loading article:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load articles based on category and preferences
+  const loadArticles = async () => {
     try {
       setLoading(true);
       setError(null);
       
       // Get user location for local news
-      const locationData = await getUserLocation();
+      let location = null;
+      try {
+        location = await getUserLocation();
+      } catch (locErr) {
+        console.warn('Could not get user location:', locErr);
+      }
       
-      // Get articles based on user preferences and/or location
-      const response = await getArticles({
-        page,
-        pageSize: articlesPerPage,
-        userPreferences: user ? {
-          categories: user.preferences?.categories || ['general'],
-          sources: user.preferences?.sources || [],
-          interests: user.preferences?.interests || [],
-          location: locationData?.formattedAddress || ''
-        } : undefined,
-        location: locationData
-      });
+      // Get articles based on category or user preferences
+      const options = { 
+        category: category || undefined,
+        location,
+        userPreferences: user?.preferences
+      };
       
-      setArticles(response.articles);
-      setTotalPages(Math.ceil(response.totalResults / articlesPerPage));
-      setCurrentPage(page);
+      const { articles: fetchedArticles, totalResults } = await getArticles(options);
+      
+      if (fetchedArticles.length === 0) {
+        setError('No articles found. Try a different category or refresh.');
+      } else {
+        setArticles(fetchedArticles);
+        setTotalPages(Math.ceil(totalResults / articlesPerPage));
+      }
     } catch (err) {
-      console.error('Error loading articles:', err);
       setError('Failed to load articles. Please try again later.');
+      console.error('Error loading articles:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
-  
-  const handleRefresh = async () => {
+
+  // Handle refresh button click
+  const handleRefresh = () => {
     setRefreshing(true);
-    await loadArticles(1);
-    setRefreshing(false);
+    loadArticles();
   };
 
-  useEffect(() => {
-    loadArticles();
-  }, [user]);
-
+  // Handle pagination
   const handlePageChange = (page: number) => {
-    loadArticles(page);
+    setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSaveArticle = (articleId: string) => {
-    // In a real app, this would save the article to the user's saved articles
-    console.log(`Saving article ${articleId}`);
-  };
-
-  const handleShareArticle = (articleId: string) => {
-    // In a real app, this would share the article
-    console.log(`Sharing article ${articleId}`);
-  };
-
+  // Handle article click to view details
   const handleArticleClick = (article: Article) => {
     setSelectedArticle(article);
+    // Update URL without full navigation
+    window.history.pushState({}, '', `/article/${article.id}`);
   };
 
+  // Handle closing article detail view
   const handleCloseArticleDetail = () => {
     setSelectedArticle(null);
+    // Remove article ID from URL when closing detail view
+    if (articleId) {
+      navigate('/categories/' + (category || ''));
+    }
   };
 
-  // Display loading state
+  // Handle saving an article
+  const handleSaveArticle = (articleId: string) => {
+    console.log('Saving article:', articleId);
+    // Implement save functionality
+  };
+
+  // Handle sharing an article
+  const handleShareArticle = (articleId: string) => {
+    console.log('Sharing article:', articleId);
+    // Implement share functionality
+  };
+
   if (loading && !refreshing) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <LoadingSpinner size="large" />
-        <p className="mt-4 text-muted-foreground">Loading your personalized news feed...</p>
+      <div className="flex justify-center items-center h-[50vh]">
+        <LoadingSpinner />
       </div>
     );
   }
 
-  // Display error state
-  if (error) {
+  // If we have a selected article or article ID, show the article detail view
+  if (selectedArticle) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-        <div className="bg-destructive/10 p-4 rounded-full mb-4">
-          <AlertCircle className="h-8 w-8 text-destructive" />
-        </div>
-        <h2 className="text-2xl font-bold mb-3">Failed to Load News</h2>
-        <p className="text-muted-foreground mb-6 max-w-md">{error}</p>
-        <button 
-          onClick={handleRefresh}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-        >
-          Try Again
-        </button>
+      <div className="container mx-auto px-4 py-8">
+        <ArticleDetail 
+          article={selectedArticle}
+          onClose={handleCloseArticleDetail}
+          onSave={handleSaveArticle}
+          onShare={() => handleShareArticle(selectedArticle.id)}
+        />
       </div>
     );
   }
 
-  // Render news feed
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-8">
-      {/* Page Header */}
+    <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Today's News</h1>
-          <p className="text-muted-foreground">
-            {user ? 'Personalized for you' : 'Trending news stories'}
-            {!user && (
-              <button 
-                onClick={() => navigate('/auth')} 
-                className="ml-2 text-primary hover:underline"
-              >
-                Sign in for personalized news
-              </button>
-            )}
-          </p>
-        </div>
+        <h1 className="text-3xl font-bold">
+          {category ? `${category.charAt(0).toUpperCase() + category.slice(1)} News` : 'News Feed'}
+        </h1>
         <button 
           onClick={handleRefresh} 
+          className={`p-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors ${refreshing ? 'animate-spin' : ''}`}
           disabled={refreshing}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+          aria-label="Refresh"
         >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
+          <RefreshCw size={20} />
         </button>
       </div>
-
-      {/* Featured Articles */}
-      {articles.length > 0 && (
-        <div className="mb-12">
-          <h2 className="text-xl font-semibold mb-6">Featured Stories</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Featured Article */}
-            {articles[0] && (
-              <div className="lg:col-span-2">
-                <ArticleCard 
-                  article={articles[0]} 
-                  isMainFeatured={true}
-                />
-              </div>
-            )}
-            
-            {/* Secondary Featured Articles */}
-            <div className="grid grid-cols-1 gap-6">
-              {articles.slice(1, 3).map((article) => (
-                <ArticleCard 
-                  key={article.id}
-                  article={article}
-                />
-              ))}
-            </div>
-          </div>
+      
+      {error && (
+        <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center text-red-700">
+          <AlertCircle size={20} className="mr-2 flex-shrink-0" />
+          <p>{error}</p>
         </div>
       )}
-
-      {/* All Articles */}
-      <div>
-        <h2 className="text-xl font-semibold mb-6">Latest News</h2>
+      
+      {articles.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {articles.slice(3).map((article) => (
+          {articles.map((article) => (
             <ArticleCard 
               key={article.id} 
               article={article} 
+              onClick={() => handleArticleClick(article)}
+              onSave={() => handleSaveArticle(article.id)}
+              onShare={() => handleShareArticle(article.id)}
             />
           ))}
         </div>
-        
-        {/* Empty State */}
-        {articles.length === 0 && (
-          <div className="text-center py-16 bg-card border border-border rounded-lg">
-            <h3 className="text-xl font-medium mb-2">No articles found</h3>
-            <p className="text-muted-foreground mb-6">Try refreshing or adjusting your preferences</p>
-            <button 
-              onClick={handleRefresh}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-            >
-              Refresh
-            </button>
-          </div>
-        )}
-      </div>
-
+      ) : !error && !loading ? (
+        <div className="text-center py-12">
+          <p className="text-lg text-muted-foreground">No articles to display.</p>
+        </div>
+      ) : null}
+      
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center mt-12">
-          <div className="flex gap-2">
+        <div className="mt-8 flex justify-center">
+          <nav className="flex items-center space-x-2">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}
                 onClick={() => handlePageChange(page)}
-                className={`w-10 h-10 rounded-md flex items-center justify-center transition-colors ${
+                className={`w-10 h-10 flex items-center justify-center rounded-md ${
                   currentPage === page
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-card hover:bg-primary/10 text-foreground'
+                    : 'bg-card text-muted-foreground hover:bg-primary/10'
                 }`}
               >
                 {page}
               </button>
             ))}
-          </div>
-        </div>
-      )}
-
-      {/* Article Detail Modal */}
-      {selectedArticle && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-background rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
-          >
-            <ArticleDetail 
-              article={selectedArticle}
-              onClose={handleCloseArticleDetail}
-              onSave={handleSaveArticle}
-              onShare={() => handleShareArticle(selectedArticle.id)}
-            />
-          </motion.div>
+          </nav>
         </div>
       )}
     </div>
