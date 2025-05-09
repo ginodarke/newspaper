@@ -1,1 +1,1 @@
-[Cursor] Fix TypeScript type errors in NewsFeed component
+[Cursor] Clean up error messages and improve deployment resilience

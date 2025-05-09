@@ -163,6 +163,7 @@ debug.info(`Environment: ${NODE_ENV}`);
 
 // Prepare the dist directory path
 const distDir = path.join(__dirname, 'dist');
+const publicDir = path.join(__dirname, 'public');
 
 // Check if dist directory exists
 if (!fs.existsSync(distDir)) {
@@ -199,6 +200,26 @@ try {
   debug.error(`Error reading dist directory: ${err.message}`);
 }
 
+// Copy the newspaper-icon.svg from public to dist if it exists in public but not in dist
+try {
+  if (fs.existsSync(publicDir)) {
+    const publicFiles = fs.readdirSync(publicDir);
+    
+    if (publicFiles.includes('newspaper-icon.svg')) {
+      const svgSourcePath = path.join(publicDir, 'newspaper-icon.svg');
+      const svgDestPath = path.join(distDir, 'newspaper-icon.svg');
+      
+      if (!fs.existsSync(svgDestPath)) {
+        // Copy the SVG file to the dist directory
+        fs.copyFileSync(svgSourcePath, svgDestPath);
+        debug.info('Copied newspaper-icon.svg from public to dist directory');
+      }
+    }
+  }
+} catch (err) {
+  debug.error(`Error handling SVG icon: ${err.message}`);
+}
+
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
   debug.error('UNCAUGHT EXCEPTION:', err);
@@ -223,6 +244,26 @@ const server = http.createServer((req, res) => {
     // Normalize pathname
     if (pathname === '/') {
       pathname = '/index.html';
+    }
+    
+    // Special case for favicon.svg or newspaper-icon.svg
+    if (pathname === '/favicon.svg' || pathname === '/newspaper-icon.svg') {
+      const iconPath = path.join(distDir, 'newspaper-icon.svg');
+      if (fs.existsSync(iconPath)) {
+        fs.readFile(iconPath, (err, content) => {
+          if (err) {
+            debug.error(`Error reading icon file: ${err.message}`);
+            return sendError(res, 500, "Error reading icon file");
+          }
+          
+          return sendResponse(res, 200, {
+            'Content-Type': 'image/svg+xml',
+            'Content-Length': content.length,
+            'Cache-Control': 'public, max-age=604800' // 1 week
+          }, content);
+        });
+        return;
+      }
     }
     
     // Get file path

@@ -5,128 +5,37 @@ import { ErrorBoundary } from 'react-error-boundary';
 import App from './App.tsx';
 import './index.css';
 
-// Add global error handler for debugging
-window.onerror = function(message, source, lineno, colno, error) {
-  console.error('Global error:', { message, source, lineno, colno, error });
-  
-  // Log additional details that might help debug the issue
-  console.error('Navigator:', {
-    userAgent: navigator.userAgent,
-    language: navigator.language,
-    cookieEnabled: navigator.cookieEnabled,
-    onLine: navigator.onLine
-  });
+// Import debug utilities
+import { recordError, initializeDebugHandlers } from './debug-helper';
 
-  console.error('Environment:', {
-    NODE_ENV: import.meta.env.MODE,
-    DEV: import.meta.env.DEV,
-    PROD: import.meta.env.PROD,
-    // Log if keys exist, but not their values
-    hasSupabaseUrl: Boolean(import.meta.env.VITE_SUPABASE_URL),
-    hasSupabaseAnonKey: Boolean(import.meta.env.VITE_SUPABASE_ANON_KEY),
-    hasOpenRouterKey: Boolean(import.meta.env.VITE_OPENROUTER_API_KEY),
-    hasNewsApiKey: Boolean(import.meta.env.VITE_NEWS_API_KEY),
-    baseUrl: import.meta.env.BASE_URL,
-  });
-  
-  // Create visible error display for white screen debugging
-  const errorElement = document.createElement('div');
-  errorElement.style.position = 'fixed';
-  errorElement.style.top = '0';
-  errorElement.style.left = '0';
-  errorElement.style.right = '0';
-  errorElement.style.backgroundColor = '#f44336';
-  errorElement.style.color = 'white';
-  errorElement.style.padding = '20px';
-  errorElement.style.zIndex = '9999';
-  errorElement.innerHTML = `
-    <h2>JavaScript Error</h2>
-    <p><strong>Message:</strong> ${message}</p>
-    <p><strong>Source:</strong> ${source}</p>
-    <p><strong>Line:</strong> ${lineno}, <strong>Column:</strong> ${colno}</p>
-    <p><strong>User Agent:</strong> ${navigator.userAgent}</p>
-    <p><strong>Online:</strong> ${navigator.onLine}</p>
-    <details>
-      <summary>Stack Trace</summary>
-      <pre style="white-space: pre-wrap; font-size: 12px;">${error?.stack || 'No stack trace available'}</pre>
-    </details>
-  `;
-  document.body.appendChild(errorElement);
-  return false;
-};
+// Initialize debug handlers
+initializeDebugHandlers();
 
-// Fallback UI for error boundary
+// Simplified fallback UI for error boundary
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) {
   React.useEffect(() => {
-    // Log detailed error information
-    console.error('Error boundary caught error:', error);
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    
-    // Check for React-specific errors
-    if (error.message && error.message.includes('React')) {
-      console.error('This appears to be a React-specific error');
-    }
-    
-    // Log environment details
-    console.error('Environment:', {
-      NODE_ENV: import.meta.env.MODE,
-      DEV: import.meta.env.DEV,
-      PROD: import.meta.env.PROD,
-      baseUrl: import.meta.env.BASE_URL,
-    });
+    // Record error for debugging
+    recordError(error, { source: 'ErrorBoundary' });
   }, [error]);
   
   return (
     <div style={{ 
       padding: '20px', 
-      backgroundColor: '#ffebee', 
-      color: '#b71c1c',
+      backgroundColor: '#f8f9fa', 
+      color: '#343a40',
       borderRadius: '8px',
-      border: '1px solid #ef9a9a',
+      border: '1px solid #dee2e6',
       maxWidth: '800px',
       margin: '20px auto'
     }}>
-      <h2>Something went wrong:</h2>
-      <p style={{
-        fontSize: '16px',
-        marginBottom: '15px'
-      }}>
-        <strong>Error:</strong> {error.message || 'Unknown error'}
-      </p>
-      
-      <details style={{ marginBottom: '15px' }}>
-        <summary style={{ 
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          marginBottom: '10px' 
-        }}>
-          Technical Details
-        </summary>
-        <div style={{
-          background: '#fff', 
-          padding: '10px', 
-          borderRadius: '4px',
-          overflow: 'auto',
-          fontSize: '12px',
-          lineHeight: 1.5,
-          whiteSpace: 'pre-wrap',
-          maxHeight: '200px'
-        }}>
-          <p><strong>Name:</strong> {error.name}</p>
-          <p><strong>Message:</strong> {error.message}</p>
-          <p><strong>Stack:</strong></p>
-          <pre>{error.stack || 'No stack trace available'}</pre>
-        </div>
-      </details>
-      
-      <div style={{ display: 'flex', gap: '10px' }}>
+      <h2>Something went wrong</h2>
+      <p>We're sorry for the inconvenience. Please try again.</p>
+      <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
         <button 
           onClick={resetErrorBoundary}
           style={{
             padding: '8px 16px',
-            backgroundColor: '#1976d2',
+            backgroundColor: '#0d6efd',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
@@ -135,12 +44,11 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetError
         >
           Try again
         </button>
-        
         <button 
           onClick={() => window.location.href = '/'}
           style={{
             padding: '8px 16px',
-            backgroundColor: '#546e7a',
+            backgroundColor: '#6c757d',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
@@ -150,32 +58,9 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetError
           Go to Home
         </button>
       </div>
-      
-      <div style={{ marginTop: '20px', fontSize: '14px', color: '#555' }}>
-        <p>If the problem persists, please try:</p>
-        <ul>
-          <li>Refreshing the page</li>
-          <li>Clearing your browser cache</li>
-          <li>Checking your internet connection</li>
-          <li>Accessing the <a href="/fallback.html" style={{ color: '#1976d2' }}>fallback page</a></li>
-        </ul>
-      </div>
     </div>
   );
 }
-
-// Log environment variables (without sensitive info)
-console.log('Environment:', {
-  NODE_ENV: import.meta.env.MODE,
-  DEV: import.meta.env.DEV,
-  PROD: import.meta.env.PROD,
-  // Log if keys exist, but not their values
-  hasSupabaseUrl: Boolean(import.meta.env.VITE_SUPABASE_URL),
-  hasSupabaseAnonKey: Boolean(import.meta.env.VITE_SUPABASE_ANON_KEY),
-  hasOpenRouterKey: Boolean(import.meta.env.VITE_OPENROUTER_API_KEY),
-  hasNewsApiKey: Boolean(import.meta.env.VITE_NEWS_API_KEY),
-  baseUrl: import.meta.env.BASE_URL,
-});
 
 // Add a visible loading indicator that will be removed when app renders
 const loadingElement = document.createElement('div');
@@ -219,28 +104,14 @@ document.body.appendChild(loadingElement);
 // Ensure the root element exists
 const rootElement = document.getElementById('root');
 if (!rootElement) {
-  const errorMsg = 'Root element #root not found';
-  console.error(errorMsg);
+  console.error('Root element #root not found');
   document.body.innerHTML = `
-    <div style="
-      padding: 20px;
-      margin: 20px;
-      background-color: #ffebee;
-      color: #b71c1c;
-      border-radius: 8px;
-      border: 1px solid #ef9a9a;
-    ">
-      <h2>Critical Error</h2>
-      <p>${errorMsg}</p>
-      <p>This could be due to:</p>
-      <ul>
-        <li>Missing or incorrect HTML structure</li>
-        <li>HTML not being properly loaded</li>
-        <li>A JavaScript error occurring before React initialization</li>
-      </ul>
+    <div style="text-align: center; padding: 20px;">
+      <h2>Application Error</h2>
+      <p>Unable to initialize application. Please refresh the page.</p>
     </div>
   `;
-  throw new Error(errorMsg);
+  throw new Error('Root element #root not found');
 }
 
 // Mount the app with additional error handling
@@ -250,8 +121,9 @@ try {
       <ErrorBoundary 
         FallbackComponent={ErrorFallback}
         onError={(error, info) => {
-          console.error('Error caught by ErrorBoundary:', error);
-          console.error('Component stack:', info.componentStack);
+          recordError(error, { 
+            componentStack: info.componentStack 
+          });
         }}
       >
         <BrowserRouter>
@@ -261,19 +133,11 @@ try {
     </React.StrictMode>,
   );
 } catch (error) {
-  console.error('Failed to render React application:', error);
+  console.error('Failed to render React application');
   document.body.innerHTML = `
-    <div style="
-      padding: 20px;
-      margin: 20px;
-      background-color: #ffebee;
-      color: #b71c1c;
-      border-radius: 8px;
-      border: 1px solid #ef9a9a;
-    ">
-      <h2>Failed to Initialize Application</h2>
-      <p>Error: ${error instanceof Error ? error.message : String(error)}</p>
-      <p>Please try refreshing the page. If the problem persists, contact support.</p>
+    <div style="text-align: center; padding: 20px;">
+      <h2>Application Error</h2>
+      <p>Unable to initialize application. Please refresh the page.</p>
     </div>
   `;
 }
@@ -290,4 +154,4 @@ setTimeout(() => {
       }
     }, 500);
   }
-}, 1000); // Give the app 1 second to render 
+}, 1000); 
