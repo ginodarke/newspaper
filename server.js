@@ -8,6 +8,14 @@ console.log(`Using Node.js version: ${nodeVersion}`);
 
 const PORT = process.env.PORT || 10000;
 const DIST_DIR = path.join(__dirname, 'dist');
+const PUBLIC_DIR = path.join(__dirname, 'public');
+
+// Check if we have a fallback.html
+let FALLBACK_HTML_PATH = path.join(PUBLIC_DIR, 'fallback.html');
+if (!fs.existsSync(FALLBACK_HTML_PATH)) {
+  console.warn(`Fallback HTML not found at ${FALLBACK_HTML_PATH}`);
+  FALLBACK_HTML_PATH = null;
+}
 
 // Create a simple fallback HTML page
 const FALLBACK_HTML = `
@@ -87,6 +95,13 @@ const FALLBACK_HTML = `
 const server = http.createServer((req, res) => {
   console.log(`Request: ${req.method} ${req.url}`);
   
+  // Special path for checking server status
+  if (req.url === '/ping') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('pong');
+    return;
+  }
+  
   // Special route for diagnostics
   if (req.url === '/diagnostic.html') {
     res.writeHead(200, {
@@ -96,6 +111,22 @@ const server = http.createServer((req, res) => {
     });
     res.end(FALLBACK_HTML);
     return;
+  }
+  
+  // Check if static fallback page was requested
+  if (req.url === '/fallback.html' && FALLBACK_HTML_PATH) {
+    try {
+      const fallbackContent = fs.readFileSync(FALLBACK_HTML_PATH);
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-cache'
+      });
+      res.end(fallbackContent);
+      return;
+    } catch (err) {
+      console.error(`Error serving fallback.html: ${err.message}`);
+      // Continue to normal request handling
+    }
   }
   
   // Handle root or no path requests
@@ -125,12 +156,28 @@ const server = http.createServer((req, res) => {
       // Check if dist directory exists at all
       if (!fs.existsSync(DIST_DIR)) {
         console.error(`ERROR: dist directory does not exist at ${DIST_DIR}`);
+        
+        // Try to serve fallback page
+        if (FALLBACK_HTML_PATH) {
+          try {
+            const fallbackContent = fs.readFileSync(FALLBACK_HTML_PATH);
+            res.writeHead(200, {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'no-cache'
+            });
+            res.end(fallbackContent);
+            return;
+          } catch (fallbackErr) {
+            console.error(`Error serving fallback.html: ${fallbackErr.message}`);
+          }
+        }
+        
         res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(`<html><body>
           <h1>Server Error</h1>
           <p>The dist directory does not exist at ${DIST_DIR}.</p>
           <p>Please make sure the build was successful.</p>
-          <p><a href="/diagnostic.html">View Diagnostic Page</a></p>
+          <p><a href="/fallback.html">View Fallback Page</a></p>
         </body></html>`);
         return;
       }
@@ -139,12 +186,28 @@ const server = http.createServer((req, res) => {
       const indexPath = path.join(DIST_DIR, 'index.html');
       if (!fs.existsSync(indexPath)) {
         console.error(`ERROR: index.html does not exist at ${indexPath}`);
+        
+        // Try to serve fallback page
+        if (FALLBACK_HTML_PATH) {
+          try {
+            const fallbackContent = fs.readFileSync(FALLBACK_HTML_PATH);
+            res.writeHead(200, {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'no-cache'
+            });
+            res.end(fallbackContent);
+            return;
+          } catch (fallbackErr) {
+            console.error(`Error serving fallback.html: ${fallbackErr.message}`);
+          }
+        }
+        
         res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(`<html><body>
           <h1>Server Error</h1>
           <p>The index.html file does not exist at ${indexPath}.</p>
           <p>Please make sure the build was successful.</p>
-          <p><a href="/diagnostic.html">View Diagnostic Page</a></p>
+          <p><a href="/fallback.html">View Fallback Page</a></p>
         </body></html>`);
         return;
       }
@@ -153,11 +216,27 @@ const server = http.createServer((req, res) => {
       fs.readFile(indexPath, (err, data) => {
         if (err) {
           console.error(`Error reading index.html: ${err.message}`);
+          
+          // Try to serve fallback page
+          if (FALLBACK_HTML_PATH) {
+            try {
+              const fallbackContent = fs.readFileSync(FALLBACK_HTML_PATH);
+              res.writeHead(200, {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Cache-Control': 'no-cache'
+              });
+              res.end(fallbackContent);
+              return;
+            } catch (fallbackErr) {
+              console.error(`Error serving fallback.html: ${fallbackErr.message}`);
+            }
+          }
+          
           res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
           res.end(`<html><body>
             <h1>Server Error</h1>
             <p>Error reading index.html: ${err.message}</p>
-            <p><a href="/diagnostic.html">View Diagnostic Page</a></p>
+            <p><a href="/fallback.html">View Fallback Page</a></p>
           </body></html>`);
           return;
         }
@@ -166,31 +245,76 @@ const server = http.createServer((req, res) => {
           // Check if index.html is empty or too small (potential build issue)
           if (data.length < 100) {
             console.error(`ERROR: index.html is too small (${data.length} bytes)`);
+            
+            // Try to serve fallback page
+            if (FALLBACK_HTML_PATH) {
+              try {
+                const fallbackContent = fs.readFileSync(FALLBACK_HTML_PATH);
+                res.writeHead(200, {
+                  'Content-Type': 'text/html; charset=utf-8',
+                  'Cache-Control': 'no-cache'
+                });
+                res.end(fallbackContent);
+                return;
+              } catch (fallbackErr) {
+                console.error(`Error serving fallback.html: ${fallbackErr.message}`);
+              }
+            }
+            
             res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
             res.end(`<html><body>
               <h1>Server Error</h1>
               <p>The index.html file is too small (${data.length} bytes).</p>
               <p>This indicates a potential build issue.</p>
-              <p><a href="/diagnostic.html">View Diagnostic Page</a></p>
+              <p><a href="/fallback.html">View Fallback Page</a></p>
             </body></html>`);
             return;
           }
+          
+          // Add CSP headers for security
+          // Allow loading of resources from same origin, 
+          // data: URIs for images, and specific external origins
+          const csp = [
+            "default-src 'self'",
+            "connect-src 'self' https://*.supabase.co https://*.openrouter.ai https://api.thenewsapi.com",
+            "img-src 'self' data: https://images.unsplash.com https://*.googleusercontent.com",
+            "script-src 'self' 'unsafe-inline'",
+            "style-src 'self' 'unsafe-inline'",
+            "font-src 'self' data:"
+          ].join("; ");
           
           // Set headers for HTML
           res.writeHead(200, {
             'Content-Type': 'text/html; charset=utf-8',
             'Content-Length': data.length,
             'Cache-Control': 'no-cache',
-            'X-Content-Type-Options': 'nosniff'
+            'X-Content-Type-Options': 'nosniff',
+            'Content-Security-Policy': csp
           });
           res.end(data);
         } catch (error) {
           console.error(`Error serving index.html: ${error.message}`);
+          
+          // Try to serve fallback page
+          if (FALLBACK_HTML_PATH) {
+            try {
+              const fallbackContent = fs.readFileSync(FALLBACK_HTML_PATH);
+              res.writeHead(200, {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Cache-Control': 'no-cache'
+              });
+              res.end(fallbackContent);
+              return;
+            } catch (fallbackErr) {
+              console.error(`Error serving fallback.html: ${fallbackErr.message}`);
+            }
+          }
+          
           res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
           res.end(`<html><body>
             <h1>Server Error</h1>
             <p>Error serving index.html: ${error.message}</p>
-            <p><a href="/diagnostic.html">View Diagnostic Page</a></p>
+            <p><a href="/fallback.html">View Fallback Page</a></p>
           </body></html>`);
         }
       });
@@ -206,6 +330,7 @@ const server = http.createServer((req, res) => {
       case '.html': contentType = 'text/html; charset=utf-8'; break;
       case '.css': contentType = 'text/css; charset=utf-8'; break;
       case '.js': contentType = 'application/javascript; charset=utf-8'; break;
+      case '.mjs': contentType = 'application/javascript; charset=utf-8'; break;
       case '.json': contentType = 'application/json; charset=utf-8'; break;
       case '.png': contentType = 'image/png'; break;
       case '.jpg': case '.jpeg': contentType = 'image/jpeg'; break;
@@ -217,6 +342,9 @@ const server = http.createServer((req, res) => {
       case '.ttf': contentType = 'font/ttf'; break;
       case '.otf': contentType = 'font/otf'; break;
       case '.eot': contentType = 'application/vnd.ms-fontobject'; break;
+      case '.mp4': contentType = 'video/mp4'; break;
+      case '.webm': contentType = 'video/webm'; break;
+      case '.webp': contentType = 'image/webp'; break;
     }
     
     console.log(`Serving file: ${filePath} as ${contentType}`);
@@ -225,11 +353,27 @@ const server = http.createServer((req, res) => {
     fs.readFile(filePath, (err, data) => {
       if (err) {
         console.error(`Error reading file ${filePath}: ${err.message}`);
+        
+        // Try to serve fallback page
+        if (FALLBACK_HTML_PATH) {
+          try {
+            const fallbackContent = fs.readFileSync(FALLBACK_HTML_PATH);
+            res.writeHead(200, {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'no-cache'
+            });
+            res.end(fallbackContent);
+            return;
+          } catch (fallbackErr) {
+            console.error(`Error serving fallback.html: ${fallbackErr.message}`);
+          }
+        }
+        
         res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(`<html><body>
           <h1>Server Error</h1>
           <p>Error reading file ${filePath}: ${err.message}</p>
-          <p><a href="/diagnostic.html">View Diagnostic Page</a></p>
+          <p><a href="/fallback.html">View Fallback Page</a></p>
         </body></html>`);
         return;
       }
@@ -241,25 +385,73 @@ const server = http.createServer((req, res) => {
           cacheControl = 'public, max-age=31536000'; // 1 year for assets
         }
         
-        res.writeHead(200, {
+        // Special handling for JavaScript files to prevent MIME type errors
+        let headers = {
           'Content-Type': contentType,
           'Content-Length': data.length,
           'Cache-Control': cacheControl,
           'X-Content-Type-Options': 'nosniff'
-        });
+        };
+        
+        // Add cross-origin headers for fonts
+        if (['.woff', '.woff2', '.ttf', '.otf', '.eot'].includes(ext)) {
+          headers['Access-Control-Allow-Origin'] = '*';
+        }
+        
+        res.writeHead(200, headers);
         res.end(data);
       } catch (error) {
         console.error(`Error serving file ${filePath}: ${error.message}`);
+        
+        // Try to serve fallback page
+        if (FALLBACK_HTML_PATH) {
+          try {
+            const fallbackContent = fs.readFileSync(FALLBACK_HTML_PATH);
+            res.writeHead(200, {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'no-cache'
+            });
+            res.end(fallbackContent);
+            return;
+          } catch (fallbackErr) {
+            console.error(`Error serving fallback.html: ${fallbackErr.message}`);
+          }
+        }
+        
         res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(`<html><body>
           <h1>Server Error</h1>
           <p>Error serving file ${filePath}: ${error.message}</p>
-          <p><a href="/diagnostic.html">View Diagnostic Page</a></p>
+          <p><a href="/fallback.html">View Fallback Page</a></p>
         </body></html>`);
       }
     });
   });
 });
+
+// Create public directory if it doesn't exist
+if (!fs.existsSync(PUBLIC_DIR)) {
+  console.log(`Creating public directory at ${PUBLIC_DIR}`);
+  try {
+    fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+  } catch (err) {
+    console.error(`Error creating public directory: ${err.message}`);
+  }
+}
+
+// Copy fallback.html to dist directory to ensure it's accessible
+if (FALLBACK_HTML_PATH) {
+  try {
+    if (!fs.existsSync(DIST_DIR)) {
+      fs.mkdirSync(DIST_DIR, { recursive: true });
+    }
+    const content = fs.readFileSync(FALLBACK_HTML_PATH);
+    fs.writeFileSync(path.join(DIST_DIR, 'fallback.html'), content);
+    console.log('Copied fallback.html to dist directory');
+  } catch (err) {
+    console.error(`Error copying fallback.html: ${err.message}`);
+  }
+}
 
 // List files in the dist directory to verify they exist
 console.log('Files in dist directory:');
@@ -300,6 +492,18 @@ try {
   console.error(`Error listing dist directory: ${err.message}`);
 }
 
+// Check memory usage
+const formatMemory = (bytes) => {
+  return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+};
+
+const memoryUsage = process.memoryUsage();
+console.log('Memory usage:');
+console.log(` - RSS: ${formatMemory(memoryUsage.rss)}`);
+console.log(` - Heap Total: ${formatMemory(memoryUsage.heapTotal)}`);
+console.log(` - Heap Used: ${formatMemory(memoryUsage.heapUsed)}`);
+console.log(` - External: ${formatMemory(memoryUsage.external)}`);
+
 // Set up process error handling
 process.on('uncaughtException', (error) => {
   console.error('UNCAUGHT EXCEPTION:');
@@ -314,5 +518,6 @@ process.on('unhandledRejection', (reason, promise) => {
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Serving files from: ${DIST_DIR}`);
-  console.log(`Diagnostic page available at: http://localhost:${PORT}/diagnostic.html`);
+  console.log(`Static fallback page: ${FALLBACK_HTML_PATH || 'Not available'}`);
+  console.log(`Access fallback page at: http://localhost:${PORT}/fallback.html`);
 }); 
