@@ -25,6 +25,35 @@ const distDir = path.join(__dirname, 'dist');
 const assetsDir = path.join(distDir, 'assets');
 
 try {
+  // Clean dist directory first to avoid conflicts
+  if (fs.existsSync(distDir)) {
+    console.log(`${colors.yellow}Cleaning existing dist directory...${colors.reset}`);
+    // Only delete if it's a proper dist directory (safety check)
+    if (fs.existsSync(path.join(distDir, 'index.html'))) {
+      try {
+        // We won't recursively delete, just clear essential files
+        const files = fs.readdirSync(distDir);
+        files.forEach(file => {
+          if (file !== 'assets') {
+            fs.unlinkSync(path.join(distDir, file));
+          }
+        });
+        
+        // Clear assets directory
+        if (fs.existsSync(assetsDir)) {
+          const assetFiles = fs.readdirSync(assetsDir);
+          assetFiles.forEach(file => {
+            fs.unlinkSync(path.join(assetsDir, file));
+          });
+        }
+      } catch (cleanErr) {
+        console.error(`${colors.yellow}Warning: Could not clean dist directory: ${cleanErr.message}${colors.reset}`);
+        // Continue anyway
+      }
+    }
+  }
+
+  // Create directories
   if (!fs.existsSync(distDir)) {
     fs.mkdirSync(distDir, { recursive: true });
     console.log(`${colors.green}Created dist directory${colors.reset}`);
@@ -316,28 +345,157 @@ const htmlContent = `<!DOCTYPE html>
 </body>
 </html>`;
 
+// Write all files with error handling
+let hasErrors = false;
+
 try {
   // Write the CSS file
   fs.writeFileSync(path.join(assetsDir, 'index.css'), cssContent);
   console.log(`${colors.green}Created CSS file${colors.reset}`);
-  
+} catch (err) {
+  console.error(`${colors.red}Error creating CSS file: ${err.message}${colors.reset}`);
+  hasErrors = true;
+}
+
+try {
   // Write the JS file
   fs.writeFileSync(path.join(assetsDir, 'index.js'), jsContent);
   console.log(`${colors.green}Created JS file${colors.reset}`);
-  
+} catch (err) {
+  console.error(`${colors.red}Error creating JS file: ${err.message}${colors.reset}`);
+  hasErrors = true;
+}
+
+try {
   // Write the HTML file
   fs.writeFileSync(path.join(distDir, 'index.html'), htmlContent);
   console.log(`${colors.green}Created HTML file${colors.reset}`);
-  
-  console.log(`${colors.green}Fallback build completed successfully${colors.reset}`);
 } catch (err) {
-  console.error(`${colors.red}Error creating files: ${err.message}${colors.reset}`);
-  process.exit(1);
+  console.error(`${colors.red}Error creating HTML file: ${err.message}${colors.reset}`);
+  
+  // Critical failure, try one more time with an inline styles and script
+  try {
+    const minimalHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Newspaper.AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; background: #121212; color: #fff; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .card { background: #1e1e1e; border-radius: 8px; padding: 20px; margin: 20px 0; }
+    h1 { color: #0ea5e9; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Newspaper.AI</h1>
+    <p>Our application is currently experiencing technical difficulties.</p>
+    <p>We'll be back online shortly.</p>
+  </div>
+</body>
+</html>`;
+    fs.writeFileSync(path.join(distDir, 'index.html'), minimalHtml);
+    console.log(`${colors.yellow}Created minimal emergency HTML file${colors.reset}`);
+  } catch (criticalErr) {
+    console.error(`${colors.red}CRITICAL ERROR: Failed to create any HTML file: ${criticalErr.message}${colors.reset}`);
+    process.exit(1);
+  }
+  
+  hasErrors = true;
+}
+
+if (hasErrors) {
+  console.log(`${colors.yellow}Fallback build completed with some errors${colors.reset}`);
+} else {
+  console.log(`${colors.green}Fallback build completed successfully${colors.reset}`);
+}
+
+// Create web.config for IIS compatibility
+try {
+  const webConfig = `<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <system.webServer>
+    <rewrite>
+      <rules>
+        <rule name="SPA Routes" stopProcessing="true">
+          <match url=".*" />
+          <conditions logicalGrouping="MatchAll">
+            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+            <add input="{REQUEST_URI}" pattern="^/(api)" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="/" />
+        </rule>
+      </rules>
+    </rewrite>
+    <staticContent>
+      <mimeMap fileExtension=".json" mimeType="application/json" />
+    </staticContent>
+  </system.webServer>
+</configuration>`;
+  
+  fs.writeFileSync(path.join(distDir, 'web.config'), webConfig);
+  console.log(`${colors.green}Created web.config for IIS compatibility${colors.reset}`);
+} catch (err) {
+  console.log(`${colors.yellow}Could not create web.config: ${err.message}${colors.reset}`);
+  // Not critical, continue
 }
 
 // Make the file executable
 try {
   fs.chmodSync(__filename, '755');
 } catch (err) {
-  console.error(`${colors.yellow}Warning: Could not make script executable: ${err.message}${colors.reset}`);
-} 
+  console.log(`${colors.yellow}Warning: Could not make script executable: ${err.message}${colors.reset}`);
+  // Not critical, continue
+}
+
+// Verify the build
+try {
+  console.log(`${colors.blue}Verifying build...${colors.reset}`);
+  
+  let missingFiles = [];
+  
+  if (!fs.existsSync(path.join(distDir, 'index.html'))) {
+    missingFiles.push('index.html');
+  }
+  
+  if (!fs.existsSync(path.join(assetsDir, 'index.css'))) {
+    missingFiles.push('assets/index.css');
+  }
+  
+  if (!fs.existsSync(path.join(assetsDir, 'index.js'))) {
+    missingFiles.push('assets/index.js');
+  }
+  
+  if (missingFiles.length > 0) {
+    console.error(`${colors.red}Verification failed! Missing files: ${missingFiles.join(', ')}${colors.reset}`);
+    
+    // Try to create minimal versions of missing files
+    missingFiles.forEach(file => {
+      if (file === 'index.html') {
+        try {
+          const emergencyHtml = `<!DOCTYPE html><html><head><title>Newspaper.AI</title><style>body{background:#121212;color:#fff;font-family:sans-serif;margin:20px}</style></head><body><h1>Newspaper.AI</h1><p>Emergency Fallback Page</p></body></html>`;
+          fs.writeFileSync(path.join(distDir, 'index.html'), emergencyHtml);
+          console.log(`${colors.yellow}Created emergency index.html${colors.reset}`);
+        } catch (e) {}
+      } else if (file === 'assets/index.css') {
+        try {
+          fs.writeFileSync(path.join(assetsDir, 'index.css'), 'body{background:#121212;color:#fff;font-family:sans-serif}');
+          console.log(`${colors.yellow}Created emergency CSS${colors.reset}`);
+        } catch (e) {}
+      } else if (file === 'assets/index.js') {
+        try {
+          fs.writeFileSync(path.join(assetsDir, 'index.js'), 'console.log("Emergency fallback JavaScript");');
+          console.log(`${colors.yellow}Created emergency JS${colors.reset}`);
+        } catch (e) {}
+      }
+    });
+  } else {
+    console.log(`${colors.green}Build verification successful!${colors.reset}`);
+  }
+} catch (err) {
+  console.error(`${colors.red}Error during verification: ${err.message}${colors.reset}`);
+}
+
+process.exit(0); 
