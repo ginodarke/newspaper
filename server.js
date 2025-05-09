@@ -132,4 +132,3 @@ server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Serving files from: ${distDir}`);
 });
-}); 
