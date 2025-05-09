@@ -2,7 +2,8 @@ services:
   - type: web
     name: newspaper-ai
     env: node
-    buildCommand: npm install && NODE_ENV=production npx tsc && npm run build --debug
+    buildCommand: |
+      npm install && NODE_ENV=production npx tsc && NODE_OPTIONS="--max_old_space_size=3072" npx vite build || node build-fallback.js
     startCommand: npm start
     healthCheckPath: /
     autoDeploy: true

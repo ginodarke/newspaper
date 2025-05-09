@@ -25,6 +25,7 @@
 - When working with Supabase, make sure your database field names in code match the actual column names in the database schema - mismatches like using 'interests' in code when the database column is named 'categories' will cause errors
 - When deploying SPA React applications to Render, set the rewrite rule destination to '/index.html' instead of just '/' to ensure proper routing for direct URL access and page refreshes
 - When deploying to Render, use `npm start` as the startCommand rather than directly calling `node server.js` to ensure proper script execution and environment variable access
+- When deploying large React applications with Three.js to Render, increase memory limits with NODE_OPTIONS="--max_old_space_size=3072" and create a fallback build script for more resilient deployments
 
 ## Scratchpad
 
