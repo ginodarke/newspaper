@@ -39,7 +39,7 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'style'>,
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
   loading?: boolean;
@@ -84,19 +84,20 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       ...getBottomShadow()
     };
 
+    // Using a regular button with motion styles applied via CSS classes
     return (
-      <motion.button
+      <button
         className={cn(
           buttonVariants({ variant, size, depth, className }),
           glow && `before:absolute before:inset-0 before:rounded-md before:bg-glow-primary 
                    before:opacity-0 hover:before:opacity-70 before:transition-opacity`,
           loading && "relative text-transparent transition-none hover:text-transparent",
+          "transition-transform duration-300",
+          depth !== 'flat' ? "hover:scale-105 active:scale-95" : ""
         )}
         style={buttonStyle}
         ref={ref}
         disabled={props.disabled || loading}
-        whileHover={{ scale: depth !== 'flat' ? 1.02 : 1 }}
-        whileTap={{ scale: 0.98 }}
         {...props}
       >
         {/* Inner highlight for top edge */}
@@ -138,7 +139,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             </svg>
           </div>
         )}
-      </motion.button>
+      </button>
     );
   }
 );
