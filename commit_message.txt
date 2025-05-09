@@ -1,1 +1,1 @@
-[Cursor] Clean up error messages and improve deployment resilience
+[Cursor] Fix App.tsx layout and Header props for Render deployment

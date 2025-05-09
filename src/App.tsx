@@ -1,9 +1,8 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import useFeatureFlags from './hooks/useFeatureFlags';
 
 // Layout components
 import Header from './components/layout/Header';
@@ -11,9 +10,6 @@ import Sidebar from './components/layout/Sidebar';
 
 // Common components
 import LoadingSpinner from './components/LoadingSpinner';
-
-// Debug components
-const EnvironmentChecker = lazy(() => import('./components/debug/EnvironmentChecker'));
 
 // Page components (lazy-loaded)
 const Home = lazy(() => import('./pages/Home'));
@@ -41,126 +37,124 @@ function ErrorDisplay({ error }: { error: Error }) {
   );
 }
 
-// Loading fallback component
-function LoadingFallback() {
-  return (
-    <div className="flex h-screen w-full items-center justify-center">
-      <div className="animate-spin h-12 w-12 rounded-full border-t-2 border-b-2 border-blue-500"></div>
-    </div>
-  );
-}
-
-// Debug component that shows up when debug parameter is true
-function DebugOverlay() {
-  const { enableDebugMode } = useFeatureFlags();
-  const [isVisible, setIsVisible] = useState(true);
-  
-  if (!enableDebugMode) return null;
-  
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto" style={{ display: isVisible ? 'block' : 'none' }}>
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <div className="relative bg-gray-900 rounded-lg shadow-xl w-full max-w-3xl">
-          <div className="absolute top-0 right-0 p-4">
-            <button 
-              onClick={() => setIsVisible(false)}
-              className="text-gray-400 hover:text-white"
-            >
-              Close
-            </button>
-          </div>
-          <div className="p-1">
-            <Suspense fallback={<LoadingFallback />}>
-              <EnvironmentChecker />
-            </Suspense>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Main layout component that uses context
-function AppContent() {
-  const { user, loading } = useAuth();
+// Layout component with sidebar, header and main content area
+function MainLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const { enableDebugMode } = useFeatureFlags();
   
-  // Check for debug mode from URL
-  useEffect(() => {
-    const urlParams = new URLSearchParams(location.search);
-    const isDebug = urlParams.get('debug') === 'true';
-    
-    if (isDebug) {
-      console.log('Debug mode enabled via URL');
-    }
-  }, [location.search]);
-
-  // Show loading state while auth is being determined
-  if (loading) {
-    return <LoadingFallback />;
-  }
-
-  // Determine which layout elements to show
-  const showSidebar = user && !['/auth', '/onboarding', '/'].includes(location.pathname);
-  const showHeader = !['/auth', '/onboarding'].includes(location.pathname);
-
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      {showHeader && <Header onMenuClick={() => console.log("Menu clicked")} />}
-      
-      <div className={`flex flex-1 ${showSidebar ? 'md:grid md:grid-cols-[280px_1fr]' : ''}`}>
-        {showSidebar && (
-          <div className="hidden md:block w-[280px] border-r border-border">
-            <Sidebar />
-          </div>
-        )}
-        
-        <main className="flex-1 p-4">
-          <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/categories/:category" element={<NewsFeed />} />
-              <Route path="/local" element={<LocalNews />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/search" element={<SearchResults />} />
-              <Route path="/article/:id" element={<NewsFeed />} />
-              <Route path="/404" element={<NotFound />} />
-              <Route path="*" element={<Navigate to="/404" replace />} />
-            </Routes>
-          </Suspense>
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      <Header onMenuClick={() => {}} />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <main className="flex-1 overflow-auto p-4">
+          {children}
         </main>
       </div>
+    </div>
+  );
+}
+
+// Component that handles auth-protected routes
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  
+  if (loading) {
+    return <LoadingSpinner size="large" />;
+  }
+  
+  if (!user) {
+    // Redirect to login but save the current location
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+// Routes component with proper layouts and protection
+function AppRoutes() {
+  const location = useLocation();
+
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/" element={<Home />} />
+      <Route path="/auth" element={<Auth />} />
       
-      {/* Debug overlay that appears when debug=true is in the URL */}
-      {enableDebugMode && <DebugOverlay />}
+      {/* Protected routes wrapped in authentication check */}
+      <Route 
+        path="/onboarding" 
+        element={
+          <ProtectedRoute>
+            <Onboarding />
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* Protected routes with main layout */}
+      <Route 
+        path="/feed" 
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <NewsFeed />
+            </MainLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/local" 
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <LocalNews />
+            </MainLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <Profile />
+            </MainLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/search" 
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <SearchResults />
+            </MainLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* 404 route */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
+// Content component that includes the routes and loading states
+function AppContent() {
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      <Suspense fallback={<LoadingSpinner size="large" />}>
+        <AppRoutes />
+      </Suspense>
     </div>
   );
 }
 
 // Main App component with proper provider ordering
 export default function App() {
-  // Global error handler
-  useEffect(() => {
-    const originalConsoleError = console.error;
-    console.error = (...args) => {
-      // Log to console normally
-      originalConsoleError(...args);
-      
-      // Check if this is a React error
-      const errorString = args.join(' ');
-      if (errorString.includes('React') || errorString.includes('Warning:')) {
-        console.log('React error detected:', errorString);
-      }
-    };
-    
-    return () => {
-      console.error = originalConsoleError;
-    };
-  }, []);
-
   try {
     return (
       <ErrorBoundary fallbackRender={({ error }) => <ErrorDisplay error={error} />}>
@@ -172,7 +166,6 @@ export default function App() {
       </ErrorBoundary>
     );
   } catch (error) {
-    console.error('Fatal error in App:', error);
     return <ErrorDisplay error={error instanceof Error ? error : new Error('Unknown error')} />;
   }
 } 

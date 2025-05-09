@@ -41,15 +41,16 @@ rl.question(`${colors.yellow}Enter the deployment URL to verify (e.g., https://n
   // Remove trailing slash if present
   deploymentUrl = deploymentUrl.endsWith('/') ? deploymentUrl.slice(0, -1) : deploymentUrl;
 
-  // Check responses from various endpoints
-  const endpoints = [
-    { path: '/', name: 'Home page' },
-    { path: '/auth', name: 'Auth page' },
-    { path: '/news', name: 'News feed page' },
-    { path: '/profile', name: 'Profile page' },
-    { path: '/search', name: 'Search page' },
-    { path: '/assets/index.css', name: 'CSS assets', expectType: 'text/css' },
-    { path: '/assets/index.js', name: 'JS assets', expectType: 'application/javascript' }
+  // Update URLs to test with correct Vite asset paths
+  const urlsToTest = [
+    { url: '/', name: 'Home page' },
+    { url: '/auth', name: 'Auth page' },
+    { url: '/feed', name: 'News feed page' },
+    { url: '/profile', name: 'Profile page' },
+    { url: '/search', name: 'Search page' },
+    // Updated asset paths for Vite
+    { url: '/assets/index-B3uyk8Hw.css', name: 'CSS assets' },
+    { url: '/assets/index-D4TU03tc.js', name: 'JS assets' }
   ];
 
   let completedChecks = 0;
@@ -57,7 +58,7 @@ rl.question(`${colors.yellow}Enter the deployment URL to verify (e.g., https://n
 
   // Function to make HTTP requests
   function checkEndpoint(endpoint) {
-    const url = `${deploymentUrl}${endpoint.path}`;
+    const url = `${deploymentUrl}${endpoint.url}`;
     
     console.log(`${colors.dim}Testing: ${url}${colors.reset}`);
     
@@ -91,14 +92,14 @@ rl.question(`${colors.yellow}Enter the deployment URL to verify (e.g., https://n
       res.resume(); // Consume response data to free up memory
       
       completedChecks++;
-      if (completedChecks === endpoints.length) {
-        summarizeResults(successfulChecks, endpoints.length);
+      if (completedChecks === urlsToTest.length) {
+        summarizeResults(successfulChecks, urlsToTest.length);
       }
     }).on('error', (e) => {
       console.log(`${colors.red}❌ FAILED: ${endpoint.name} - ${e.message}${colors.reset}`);
       completedChecks++;
-      if (completedChecks === endpoints.length) {
-        summarizeResults(successfulChecks, endpoints.length);
+      if (completedChecks === urlsToTest.length) {
+        summarizeResults(successfulChecks, urlsToTest.length);
       }
     });
   }
@@ -136,5 +137,5 @@ rl.question(`${colors.yellow}Enter the deployment URL to verify (e.g., https://n
   }
   
   // Start verification
-  endpoints.forEach(endpoint => checkEndpoint(endpoint));
+  urlsToTest.forEach(endpoint => checkEndpoint(endpoint));
 }); 
