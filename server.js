@@ -5,9 +5,11 @@ const fs = require('fs');
 // Don't use compression which indirectly requires iconv-lite
 const app = express();
 const PORT = process.env.PORT || 3000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// Log Node.js version
+// Log Node.js version and environment
 console.log(`Running Node.js ${process.version}`);
+console.log(`Environment: ${NODE_ENV}`);
 
 // Log middleware to help debug
 app.use((req, res, next) => {
@@ -46,6 +48,22 @@ if (!fs.existsSync(distDir)) {
   }
 }
 
+// List files in dist directory to debug
+try {
+  console.log('Contents of dist directory:');
+  const files = fs.readdirSync(distDir);
+  files.forEach(file => {
+    console.log(`- ${file}`);
+  });
+  
+  // Check for index.html specifically
+  if (!files.includes('index.html')) {
+    console.error('WARNING: index.html not found in dist directory!');
+  }
+} catch (err) {
+  console.error(`Error reading dist directory: ${err.message}`);
+}
+
 // Serve static files directly without compression
 app.use(express.static(distDir, {
   etag: true,
@@ -69,4 +87,5 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Serving files from: ${distDir}`);
+  console.log(`Access the application at: http://localhost:${PORT}`);
 }); 

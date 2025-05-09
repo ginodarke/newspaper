@@ -4,12 +4,12 @@ services:
     env: node
     buildCommand: |
       npm install && NODE_ENV=production npx tsc && NODE_OPTIONS="--max_old_space_size=3072" npx vite build || node build-fallback.js
-    startCommand: npm start
+    startCommand: node server.js
     healthCheckPath: /
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
-        value: "18"
+        value: "18.20.8"
       - key: NODE_ENV
         value: production
       - key: PORT
@@ -24,7 +24,21 @@ services:
         sync: false
       - key: VITE_OPENROUTER_API_KEY
         sync: false
-      - key: VITE_NEWS_API_KEY
+      - key: VITE_THENEWSAPI_KEY
+        sync: false
+      - key: VITE_NEWSDATA_KEY
+        sync: false
+      - key: VITE_NEWSAPI_KEY
+        sync: false
+      - key: VITE_APITUBE_KEY
+        sync: false
+      - key: VITE_RADAR_PUBLISHABLE_KEY
+        sync: false
+      - key: VITE_GOOGLE_API_KEY
+        sync: false
+      - key: VITE_GOOGLE_SEARCH_ENGINE_ID
+        sync: false
+      - key: VITE_GOOGLE_OAUTH_CLIENT_ID
         sync: false
     routes:
       - type: rewrite
