@@ -28,6 +28,12 @@
 - When deploying large React applications with Three.js to Render, increase memory limits with NODE_OPTIONS="--max_old_space_size=3072" and create a fallback build script for more resilient deployments
 - When deploying Node.js servers, avoid direct or indirect dependencies on iconv-lite version 0.4.24 which has compatibility issues with Node.js 18.x - either upgrade the package or remove dependencies that rely on it
 - When deploying to Render with Node.js 18, consider using the built-in http module instead of Express when encountering dependency issues, as Express has many transitive dependencies that can cause compatibility problems
+- When working with framer-motion in TypeScript, use the HTMLMotionProps generic type to properly type motion components and avoid type errors
+- When implementing a 3D card design system, create reusable utility classes in Tailwind CSS to avoid repeating CSS transforms and shadow styles
+- When using CSS custom properties for a theming system, organize them by component or feature to make maintenance easier
+- For 3D hover effects, use a combination of transform, box-shadow, and transition properties to create a cohesive animation effect
+- When implementing design systems, use the cva (class-variance-authority) library to handle component variants and maintain consistency
+- Always implement a fallback mechanism for 3D effects for users with reduced motion preferences
 
 ## Scratchpad
 
