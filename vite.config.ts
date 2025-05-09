@@ -10,7 +10,7 @@ export default defineConfig({
   base: '/',
   build: {
     outDir: 'dist',
-    minify: 'terser',
+    minify: 'esbuild',
     sourcemap: true,
     emptyOutDir: true,
     rollupOptions: {
