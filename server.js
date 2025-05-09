@@ -1,13 +1,11 @@
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
-const url = require('url');
 
 // Configuration
 const PORT = process.env.PORT || 3000;
-const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// MIME types for different file extensions
+// Simple MIME type mapping
 const MIME_TYPES = {
   '.html': 'text/html',
   '.js': 'application/javascript',
@@ -15,145 +13,123 @@ const MIME_TYPES = {
   '.json': 'application/json',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
   '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon',
-  '.webp': 'image/webp',
-  '.woff': 'font/woff',
-  '.woff2': 'font/woff2',
-  '.ttf': 'font/ttf',
-  '.otf': 'font/otf',
-  '.eot': 'application/vnd.ms-fontobject'
+  '.svg': 'image/svg+xml'
 };
 
-// Log system info
-console.log(`Running Node.js ${process.version}`);
-console.log(`Environment: ${NODE_ENV}`);
+// Log startup information
+console.log(`Starting minimal server with Node.js ${process.version}`);
+console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 
-// Create server
+// Create very simple HTTP server
 const server = http.createServer((req, res) => {
-  // Log request
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   
-  // Parse URL
-  const parsedUrl = url.parse(req.url);
-  let pathname = parsedUrl.pathname;
-  
-  // Normalize pathname
-  if (pathname.endsWith('/')) {
-    pathname += 'index.html';
-  }
-  
-  // Get file path
-  const distDir = path.join(__dirname, 'dist');
-  let filePath = path.join(distDir, pathname);
-  
-  // Handle special case for root URL
-  if (pathname === '/') {
-    filePath = path.join(distDir, 'index.html');
-  }
-  
-  // Get file extension
-  const extname = String(path.extname(filePath)).toLowerCase();
-  
-  // Get content type based on file extension
-  const contentType = MIME_TYPES[extname] || 'application/octet-stream';
-  
-  // Try to read file
-  fs.readFile(filePath, (error, content) => {
-    if (error) {
-      if (error.code === 'ENOENT') {
-        // If file doesn't exist and it's not an asset, serve index.html for SPA routing
-        if (!pathname.startsWith('/assets/')) {
-          // For SPA routing, serve index.html for paths that are not files
-          fs.readFile(path.join(distDir, 'index.html'), (err, data) => {
-            if (err) {
-              res.writeHead(500);
-              res.end('Error loading index.html');
-              return;
-            }
-            
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(data, 'utf-8');
-          });
+  try {
+    // Normalize URL and set default to index.html for root
+    let pathname = req.url;
+    if (pathname === '/' || pathname === '') {
+      pathname = '/index.html';
+    }
+
+    // Get the file path
+    const distDir = path.join(__dirname, 'dist');
+    let filePath = path.join(distDir, pathname);
+
+    // Basic security check to prevent directory traversal
+    if (!filePath.startsWith(distDir)) {
+      res.writeHead(403);
+      res.end('Forbidden');
+      return;
+    }
+
+    // Get file extension
+    const ext = path.extname(filePath);
+    
+    // Check if file exists
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+      
+      // Read and serve the file
+      const content = fs.readFileSync(filePath);
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(content);
+    } else {
+      // For SPA routing, serve index.html for paths that don't exist as files
+      // But only if they're not asset requests
+      if (!pathname.includes('.')) {
+        const indexPath = path.join(distDir, 'index.html');
+        if (fs.existsSync(indexPath)) {
+          const content = fs.readFileSync(indexPath);
+          res.writeHead(200, { 'Content-Type': 'text/html' });
+          res.end(content);
         } else {
-          // For missing assets, return 404
           res.writeHead(404);
-          res.end('File not found');
+          res.end('Not Found - index.html is missing');
         }
       } else {
-        // Other server error
-        res.writeHead(500);
-        res.end(`Server Error: ${error.code}`);
+        res.writeHead(404);
+        res.end('Not Found');
       }
-    } else {
-      // Set cache headers based on file type
-      const headers = { 'Content-Type': contentType };
-      
-      if (pathname.endsWith('.html')) {
-        headers['Cache-Control'] = 'no-cache';
-      } else if (pathname.startsWith('/assets/')) {
-        headers['Cache-Control'] = 'public, max-age=31536000';
-      }
-      
-      // Serve file
-      res.writeHead(200, headers);
-      res.end(content, 'utf-8');
     }
-  });
+  } catch (error) {
+    console.error('Server error:', error);
+    res.writeHead(500);
+    res.end('Internal Server Error');
+  }
 });
 
-// Check if dist directory exists
+// Check if dist directory exists and create it if not
 const distDir = path.join(__dirname, 'dist');
 if (!fs.existsSync(distDir)) {
-  console.error(`ERROR: 'dist' directory not found at ${distDir}`);
-  // Create a minimal dist directory with a placeholder index.html
+  console.warn(`WARNING: 'dist' directory not found at ${distDir}, creating it...`);
   try {
     fs.mkdirSync(distDir, { recursive: true });
-    const placeholderHtml = `
+    
+    // Create a minimal index.html if the build is missing
+    const html = `
       <!DOCTYPE html>
       <html>
         <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
           <title>Newspaper.AI</title>
           <style>
-            body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-            .error { color: red; }
+            body { font-family: system-ui, sans-serif; background: #121212; color: #fff; max-width: 800px; margin: 0 auto; padding: 20px; }
+            .card { background: #1e1e1e; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            h1 { color: #0ea5e9; }
+            .button { background: #0ea5e9; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
           </style>
         </head>
         <body>
-          <h1>Newspaper.AI</h1>
-          <p class="error">The application files could not be found. Please check server logs.</p>
-          <p>Server time: ${new Date().toISOString()}</p>
+          <div class="card">
+            <h1>Newspaper.AI</h1>
+            <p>The application files could not be found. This is a fallback page.</p>
+            <p>Server time: ${new Date().toISOString()}</p>
+          </div>
         </body>
       </html>
     `;
-    fs.writeFileSync(path.join(distDir, 'index.html'), placeholderHtml);
-    console.log('Created placeholder index.html');
+    fs.writeFileSync(path.join(distDir, 'index.html'), html);
+    console.log('Created fallback index.html');
   } catch (err) {
-    console.error(`Failed to create placeholder: ${err.message}`);
+    console.error(`ERROR: Failed to create dist directory: ${err.message}`);
   }
 }
 
-// List files in dist directory to debug
+// List contents of dist directory for debugging
 try {
   console.log('Contents of dist directory:');
-  const files = fs.readdirSync(distDir);
-  files.forEach(file => {
+  fs.readdirSync(distDir).forEach(file => {
     console.log(`- ${file}`);
   });
-  
-  // Check for index.html specifically
-  if (!files.includes('index.html')) {
-    console.error('WARNING: index.html not found in dist directory!');
-  }
 } catch (err) {
-  console.error(`Error reading dist directory: ${err.message}`);
+  console.error(`ERROR: Cannot read dist directory: ${err.message}`);
 }
 
 // Start server
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Serving files from: ${distDir}`);
-  console.log(`Access the application at: http://localhost:${PORT}`);
+});
 }); 
