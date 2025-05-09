@@ -1,16 +1,13 @@
 const express = require('express');
 const path = require('path');
-const compression = require('compression');
 const fs = require('fs');
 
+// Don't use compression which indirectly requires iconv-lite
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Log Node.js version
 console.log(`Running Node.js ${process.version}`);
-
-// Enable compression
-app.use(compression());
 
 // Log middleware to help debug
 app.use((req, res, next) => {
@@ -22,8 +19,6 @@ app.use((req, res, next) => {
 const distDir = path.join(__dirname, 'dist');
 if (!fs.existsSync(distDir)) {
   console.error(`ERROR: 'dist' directory not found at ${distDir}`);
-  console.error('Make sure the build process completed successfully');
-  
   // Create a minimal dist directory with a placeholder index.html
   try {
     fs.mkdirSync(distDir, { recursive: true });
@@ -31,25 +26,16 @@ if (!fs.existsSync(distDir)) {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Build Error</title>
+          <title>Newspaper.AI</title>
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; margin: 0 auto; }
-            .error { color: #e53e3e; }
-            pre { background: #f7fafc; padding: 15px; border-radius: 5px; overflow-x: auto; }
+            body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+            .error { color: red; }
           </style>
         </head>
         <body>
-          <h1 class="error">Newspaper.AI - Build Error</h1>
-          <p>The application build files were not found. This could indicate an issue with the build process.</p>
-          <h2>Troubleshooting Steps:</h2>
-          <ol>
-            <li>Check the build logs in the Render dashboard</li>
-            <li>Verify that all environment variables are correctly set</li>
-            <li>Make sure all dependencies are installed</li>
-            <li>Test the build process locally</li>
-          </ol>
-          <p>Server started at: ${new Date().toISOString()}</p>
-          <p>Node.js version: ${process.version}</p>
+          <h1>Newspaper.AI</h1>
+          <p class="error">The application files could not be found. Please check server logs.</p>
+          <p>Server time: ${new Date().toISOString()}</p>
         </body>
       </html>
     `;
@@ -60,32 +46,23 @@ if (!fs.existsSync(distDir)) {
   }
 }
 
-// List contents of the dist directory to help with debugging
-try {
-  if (fs.existsSync(distDir)) {
-    console.log('Contents of dist directory:');
-    const files = fs.readdirSync(distDir);
-    files.forEach(file => {
-      const stats = fs.statSync(path.join(distDir, file));
-      console.log(`- ${file} (${stats.isDirectory() ? 'directory' : stats.size + ' bytes'})`);
-    });
+// Serve static files directly without compression
+app.use(express.static(distDir, {
+  etag: true,
+  lastModified: true,
+  maxAge: '1d',
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (path.includes('/assets/')) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+    }
   }
-} catch (err) {
-  console.error(`Error listing dist directory: ${err.message}`);
-}
+}));
 
-// Serve static files
-app.use(express.static(distDir));
-
-// Handle SPA routing
+// Simple SPA routing - handle all routes by serving index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(distDir, 'index.html'));
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(`Server error: ${err.stack}`);
-  res.status(500).send('Something broke!');
 });
 
 // Start the server
