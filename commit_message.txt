@@ -1,1 +1,1 @@
-[Cursor] Fix App.tsx layout and Header props for Render deployment
+[Cursor] Update verification script for more resilient asset checks

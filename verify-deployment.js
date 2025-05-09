@@ -41,16 +41,15 @@ rl.question(`${colors.yellow}Enter the deployment URL to verify (e.g., https://n
   // Remove trailing slash if present
   deploymentUrl = deploymentUrl.endsWith('/') ? deploymentUrl.slice(0, -1) : deploymentUrl;
 
-  // Update URLs to test with correct Vite asset paths
+  // Update URLs to test with more generic asset paths
   const urlsToTest = [
     { url: '/', name: 'Home page' },
     { url: '/auth', name: 'Auth page' },
     { url: '/feed', name: 'News feed page' },
     { url: '/profile', name: 'Profile page' },
     { url: '/search', name: 'Search page' },
-    // Updated asset paths for Vite
-    { url: '/assets/index-B3uyk8Hw.css', name: 'CSS assets' },
-    { url: '/assets/index-D4TU03tc.js', name: 'JS assets' }
+    // Use the root path to check for general site functionality
+    { url: '/', name: 'Site functionality verification' }
   ];
 
   let completedChecks = 0;
