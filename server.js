@@ -1,20 +1,107 @@
-const express = require('express');
+const http = require('http');
 const path = require('path');
 const fs = require('fs');
+const url = require('url');
 
-// Don't use compression which indirectly requires iconv-lite
-const app = express();
+// Configuration
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// Log Node.js version and environment
+// MIME types for different file extensions
+const MIME_TYPES = {
+  '.html': 'text/html',
+  '.js': 'application/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.eot': 'application/vnd.ms-fontobject'
+};
+
+// Log system info
 console.log(`Running Node.js ${process.version}`);
 console.log(`Environment: ${NODE_ENV}`);
 
-// Log middleware to help debug
-app.use((req, res, next) => {
+// Create server
+const server = http.createServer((req, res) => {
+  // Log request
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-  next();
+  
+  // Parse URL
+  const parsedUrl = url.parse(req.url);
+  let pathname = parsedUrl.pathname;
+  
+  // Normalize pathname
+  if (pathname.endsWith('/')) {
+    pathname += 'index.html';
+  }
+  
+  // Get file path
+  const distDir = path.join(__dirname, 'dist');
+  let filePath = path.join(distDir, pathname);
+  
+  // Handle special case for root URL
+  if (pathname === '/') {
+    filePath = path.join(distDir, 'index.html');
+  }
+  
+  // Get file extension
+  const extname = String(path.extname(filePath)).toLowerCase();
+  
+  // Get content type based on file extension
+  const contentType = MIME_TYPES[extname] || 'application/octet-stream';
+  
+  // Try to read file
+  fs.readFile(filePath, (error, content) => {
+    if (error) {
+      if (error.code === 'ENOENT') {
+        // If file doesn't exist and it's not an asset, serve index.html for SPA routing
+        if (!pathname.startsWith('/assets/')) {
+          // For SPA routing, serve index.html for paths that are not files
+          fs.readFile(path.join(distDir, 'index.html'), (err, data) => {
+            if (err) {
+              res.writeHead(500);
+              res.end('Error loading index.html');
+              return;
+            }
+            
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(data, 'utf-8');
+          });
+        } else {
+          // For missing assets, return 404
+          res.writeHead(404);
+          res.end('File not found');
+        }
+      } else {
+        // Other server error
+        res.writeHead(500);
+        res.end(`Server Error: ${error.code}`);
+      }
+    } else {
+      // Set cache headers based on file type
+      const headers = { 'Content-Type': contentType };
+      
+      if (pathname.endsWith('.html')) {
+        headers['Cache-Control'] = 'no-cache';
+      } else if (pathname.startsWith('/assets/')) {
+        headers['Cache-Control'] = 'public, max-age=31536000';
+      }
+      
+      // Serve file
+      res.writeHead(200, headers);
+      res.end(content, 'utf-8');
+    }
+  });
 });
 
 // Check if dist directory exists
@@ -64,27 +151,8 @@ try {
   console.error(`Error reading dist directory: ${err.message}`);
 }
 
-// Serve static files directly without compression
-app.use(express.static(distDir, {
-  etag: true,
-  lastModified: true,
-  maxAge: '1d',
-  setHeaders: (res, path) => {
-    if (path.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'no-cache');
-    } else if (path.includes('/assets/')) {
-      res.setHeader('Cache-Control', 'public, max-age=31536000');
-    }
-  }
-}));
-
-// Simple SPA routing - handle all routes by serving index.html
-app.get('*', (req, res) => {
-  res.sendFile(path.join(distDir, 'index.html'));
-});
-
-// Start the server
-app.listen(PORT, () => {
+// Start server
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Serving files from: ${distDir}`);
   console.log(`Access the application at: http://localhost:${PORT}`);
