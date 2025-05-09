@@ -89,8 +89,8 @@ function AppContent() {
 
                   {categories && categories.map(category => (
                     <Route 
-                      key={category.path}
-                      path={category.path} 
+                      key={category.key}
+                      path={`/category/${category.key}`} 
                       element={<NewsFeed />} 
                     />
                   ))}

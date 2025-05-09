@@ -8,9 +8,19 @@ interface ArticleCardProps {
   article: Article;
   isMainFeatured?: boolean;
   withBorder?: boolean;
+  onSave?: (articleId: string) => void;
+  onShare?: (articleId: string) => void;
+  onClick?: () => void;
 }
 
-export default function ArticleCard({ article, isMainFeatured = false, withBorder = true }: ArticleCardProps) {
+export default function ArticleCard({ 
+  article, 
+  isMainFeatured = false, 
+  withBorder = true,
+  onSave,
+  onShare,
+  onClick 
+}: ArticleCardProps) {
   const [activeTab, setActiveTab] = useState<'article' | 'ai'>('article');
   const [isPersonalEffectOpen, setIsPersonalEffectOpen] = useState(false);
 
@@ -42,6 +52,7 @@ export default function ArticleCard({ article, isMainFeatured = false, withBorde
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
+      onClick={onClick}
     >
       {/* Article Image */}
       {article.imageUrl && (
@@ -80,7 +91,10 @@ export default function ArticleCard({ article, isMainFeatured = false, withBorde
                 ? 'text-primary border-b-2 border-primary -mb-px' 
                 : 'text-muted-foreground hover:text-primary'
             }`}
-            onClick={() => setActiveTab('article')}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveTab('article');
+            }}
           >
             <FileText className="w-4 h-4 mr-1" />
             Article
@@ -91,7 +105,10 @@ export default function ArticleCard({ article, isMainFeatured = false, withBorde
                 ? 'text-primary border-b-2 border-primary -mb-px' 
                 : 'text-muted-foreground hover:text-primary'
             }`}
-            onClick={() => setActiveTab('ai')}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveTab('ai');
+            }}
           >
             <Cpu className="w-4 h-4 mr-1" />
             AI Summary
@@ -121,7 +138,10 @@ export default function ArticleCard({ article, isMainFeatured = false, withBorde
         {/* Personal Effect Section */}
         <div className="mt-auto">
           <button 
-            onClick={() => setIsPersonalEffectOpen(!isPersonalEffectOpen)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsPersonalEffectOpen(!isPersonalEffectOpen);
+            }}
             className="w-full flex items-center justify-between text-sm py-2 px-3 bg-primary/5 hover:bg-primary/10 rounded-md text-primary transition-colors"
           >
             <div className="flex items-center">
@@ -151,12 +171,29 @@ export default function ArticleCard({ article, isMainFeatured = false, withBorde
         {/* Action Bar */}
         <div className="flex justify-between items-center mt-4 pt-3 border-t border-border">
           <div className="flex items-center space-x-2">
-            <button className="p-1.5 rounded-md hover:bg-primary/10 text-primary transition-colors">
-              <Bookmark className="h-4 w-4" />
-            </button>
-            <button className="p-1.5 rounded-md hover:bg-primary/10 text-primary transition-colors">
-              <Share2 className="h-4 w-4" />
-            </button>
+            {onSave && (
+              <button 
+                className="p-1.5 rounded-md hover:bg-primary/10 text-primary transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSave(article.id);
+                }}
+              >
+                <Bookmark className="h-4 w-4" />
+              </button>
+            )}
+            
+            {onShare && (
+              <button 
+                className="p-1.5 rounded-md hover:bg-primary/10 text-primary transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShare(article.id);
+                }}
+              >
+                <Share2 className="h-4 w-4" />
+              </button>
+            )}
           </div>
           
           <a 
@@ -164,6 +201,9 @@ export default function ArticleCard({ article, isMainFeatured = false, withBorde
             target="_blank" 
             rel="noopener noreferrer"
             className="inline-flex items-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
           >
             Read Full Article
             <ExternalLink className="h-3 w-3 ml-1" />

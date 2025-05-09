@@ -1,1 +1,0 @@
-[Cursor] Refresh dependencies after clean install

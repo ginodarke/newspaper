@@ -4,6 +4,12 @@ import { supabase } from '../services/supabase';
 export interface User {
   id: string;
   email?: string | null;
+  preferences?: {
+    categories?: string[];
+    sources?: string[];
+    interests?: string[];
+    location?: string;
+  };
   // Add any other user properties you need
 }
 

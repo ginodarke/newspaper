@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { getArticles } from '../services/news';
 import { getCurrentLocation, getAddressFromCoordinates, LocationData } from '../services/location';
 import ArticleCard from '../components/ArticleCard';
@@ -49,11 +49,16 @@ export default function LocalNews() {
   const loadLocalArticles = async (locationData: LocationData) => {
     try {
       setLoading(true);
-      // Get local news with the 'Local' category
-      const localArticles = await getArticles('Local', locationData);
+      // Get local news using the new getArticles function with options
+      const response = await getArticles({
+        category: 'Local',
+        location: locationData,
+        page: 1,
+        pageSize: ARTICLES_PER_PAGE
+      });
       
-      setArticles(localArticles);
-      setTotalPages(Math.ceil(localArticles.length / ARTICLES_PER_PAGE));
+      setArticles(response.articles);
+      setTotalPages(Math.ceil(response.totalResults / ARTICLES_PER_PAGE));
     } catch (err) {
       console.error('Error loading local articles:', err);
       setError('Failed to load local news. Please try again later.');
