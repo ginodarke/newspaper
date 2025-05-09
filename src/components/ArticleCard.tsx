@@ -3,6 +3,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Article } from '../types';
 import { Clock, Share2, Bookmark, ExternalLink, FileText, Cpu, ChevronDown, ChevronUp, UserCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from './ui/Card';
 
 interface ArticleCardProps {
   article: Article;
@@ -47,16 +48,18 @@ export default function ArticleCard({
   };
 
   return (
-    <motion.div 
-      className={`bg-card rounded-xl ${withBorder ? 'border border-border' : ''} overflow-hidden shadow-md hover:shadow-lg transition-shadow flex flex-col h-full`}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+    <Card 
+      variant={isMainFeatured ? "gradient" : "default"}
+      size="md"
+      className="h-full"
+      interactive={!!onClick}
+      interactive3d={true}
+      elevation={isMainFeatured ? 3 : 1}
       onClick={onClick}
     >
       {/* Article Image */}
       {article.imageUrl && (
-        <div className="relative w-full aspect-video overflow-hidden">
+        <div className="relative w-full aspect-video overflow-hidden rounded-t-xl">
           <img 
             src={article.imageUrl} 
             alt={article.title || 'Article image'} 
@@ -64,24 +67,26 @@ export default function ArticleCard({
             onError={(e) => (e.currentTarget.src = '/placeholder-news.jpg')}
           />
           {article.source && (
-            <span className="absolute top-2 left-2 bg-primary/90 text-primary-foreground text-xs font-medium px-2 py-1 rounded-md">
-              {article.source}
-            </span>
+            <div className="absolute top-2 left-2 z-10">
+              <span className="bg-primary/90 text-primary-foreground text-xs font-medium px-2 py-1 rounded-md shadow-lg">
+                {article.source}
+              </span>
+            </div>
           )}
         </div>
       )}
 
       <div className="flex-1 flex flex-col p-4">
         {/* Article Header */}
-        <div className="mb-3">
-          <h3 className={`font-bold tracking-tight text-foreground ${isMainFeatured ? 'text-2xl' : 'text-xl'} leading-tight`}>
+        <CardHeader className={isMainFeatured ? "mb-2" : "mb-0"}>
+          <CardTitle className={`${isMainFeatured ? 'text-headline' : 'text-featured'} leading-tight`}>
             {article.title}
-          </h3>
+          </CardTitle>
           <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
             <span>{formattedDate}</span>
           </div>
-        </div>
+        </CardHeader>
 
         {/* Tabs */}
         <div className="flex border-b border-border mb-3">
@@ -116,7 +121,7 @@ export default function ArticleCard({
         </div>
 
         {/* Content */}
-        <div className="mb-4 flex-1">
+        <CardContent className="mb-4 flex-1">
           {activeTab === 'article' ? (
             <p className="text-foreground text-sm">
               {article.description || 'No description available for this article.'}
@@ -133,7 +138,7 @@ export default function ArticleCard({
               )}
             </div>
           )}
-        </div>
+        </CardContent>
 
         {/* Personal Effect Section */}
         <div className="mt-auto">
@@ -142,10 +147,10 @@ export default function ArticleCard({
               e.stopPropagation();
               setIsPersonalEffectOpen(!isPersonalEffectOpen);
             }}
-            className="w-full flex items-center justify-between text-sm py-2 px-3 bg-primary/5 hover:bg-primary/10 rounded-md text-primary transition-colors"
+            className="w-full flex items-center justify-between text-sm py-2 px-3 bg-accent/30 hover:bg-accent/50 rounded-md text-foreground transition-colors"
           >
             <div className="flex items-center">
-              <UserCircle className="w-4 h-4 mr-2" />
+              <UserCircle className="w-4 h-4 mr-2 text-primary" />
               <span>Personal Effect</span>
             </div>
             {isPersonalEffectOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -160,7 +165,7 @@ export default function ArticleCard({
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="mt-2 p-3 bg-background border border-border rounded-md text-sm text-muted-foreground">
+                <div className="mt-2 p-3 bg-background/50 backdrop-blur-sm border border-border rounded-md text-sm">
                   {generatePersonalEffect(article)}
                 </div>
               </motion.div>
@@ -169,7 +174,7 @@ export default function ArticleCard({
         </div>
 
         {/* Action Bar */}
-        <div className="flex justify-between items-center mt-4 pt-3 border-t border-border">
+        <CardFooter className="flex justify-between items-center mt-4">
           <div className="flex items-center space-x-2">
             {onSave && (
               <button 
@@ -208,8 +213,8 @@ export default function ArticleCard({
             Read Full Article
             <ExternalLink className="h-3 w-3 ml-1" />
           </a>
-        </div>
+        </CardFooter>
       </div>
-    </motion.div>
+    </Card>
   );
 } 
