@@ -63,9 +63,9 @@ export default function NewsFeed() {
       setError(null);
       
       // Get user location for local news
-      let location = null;
+      let locationData = undefined;
       try {
-        location = await getUserLocation();
+        locationData = await getUserLocation();
       } catch (locErr) {
         console.warn('Could not get user location:', locErr);
       }
@@ -73,8 +73,13 @@ export default function NewsFeed() {
       // Get articles based on category or user preferences
       const options = { 
         category: category || undefined,
-        location,
-        userPreferences: user?.preferences
+        location: locationData,
+        userPreferences: user?.preferences ? {
+          categories: user.preferences.categories || [],
+          sources: user.preferences.sources || [],
+          interests: user.preferences.interests || [],
+          location: user.preferences.location || ''
+        } : undefined
       };
       
       const { articles: fetchedArticles, totalResults } = await getArticles(options);
