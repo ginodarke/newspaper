@@ -1,0 +1,1 @@
+[Cursor] Fix TypeScript errors and update components to work with new API
