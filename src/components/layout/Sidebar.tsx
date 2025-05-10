@@ -22,12 +22,12 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../hooks/useAuth';
 
-const categories = [
-  { name: 'Technology', icon: <Zap size={16} /> },
-  { name: 'Business', icon: <Newspaper size={16} /> },
-  { name: 'Politics', icon: <Globe size={16} /> },
-  { name: 'Health', icon: <Target size={16} /> },
-  { name: 'Science', icon: <Library size={16} /> }
+export const categories = [
+  { name: 'Technology', icon: <Zap size={16} />, key: 'technology' },
+  { name: 'Business', icon: <Newspaper size={16} />, key: 'business' },
+  { name: 'Politics', icon: <Globe size={16} />, key: 'politics' },
+  { name: 'Health', icon: <Target size={16} />, key: 'health' },
+  { name: 'Science', icon: <Library size={16} />, key: 'science' }
 ];
 
 export default function Sidebar() {

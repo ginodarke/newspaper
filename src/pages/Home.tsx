@@ -312,14 +312,14 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl font-bold mb-6 text-text-primary">Discover News Categories</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {categories.slice(0, 8).map((category) => (
+            {categories.map((category: {key: string, name: string, icon: React.ReactNode}) => (
               <Link 
                 key={category.key} 
                 to={`/category/${category.key}`}
                 className="flex flex-col items-center justify-center p-4 rounded-lg bg-card-gradient hover:shadow-elevation-2 transition-all hover:translate-y-[-2px]"
               >
                 <span className="text-primary mb-2">{category.icon}</span>
-                <span className="text-sm font-medium text-text-primary">{category.label}</span>
+                <span className="text-sm font-medium text-text-primary">{category.name}</span>
               </Link>
             ))}
           </div>
