@@ -1,150 +1,104 @@
 # Newspaper.AI
 
-A modern AI-powered news aggregator that combines the TikTok-like consumption speed with AI-generated summaries of news articles, tailored to each user.
-
-## Development
-
-To run the application in development mode:
-
-```bash
-npm install
-npm run dev
-```
-
-This will start the Vite development server at http://localhost:3000.
-
-## Production Deployment
-
-This application is designed to be deployed on Render. It is not meant to be served locally in production mode.
-
-For deployment instructions, see [RENDER_DEPLOY.md](./RENDER_DEPLOY.md).
-
-## Scripts
-
-- `npm run dev` - Start the development server
-- `npm run build` - Build the application for production
-- `npm run preview` - Preview the production build locally (for testing only, not for serving)
-- `npm run start` - Start the production server (used by Render for deployment)
-- `npm run lint` - Run ESLint
-- `npm run test` - Run Vitest tests
-- `npm run test:watch` - Run Vitest in watch mode
-- `npm run test:e2e` - Run Playwright end-to-end tests
+An AI-powered news aggregator with personalized content delivery. Combines TikTok-like consumption speed with AI-generated summaries and analysis of news articles.
 
 ## Features
 
-- Personalized news feed based on user preferences
-- AI-generated summaries of articles
-- Location-based news recommendations
-- Trending topics and articles
-- Dark mode support
-- Mobile-responsive design
-- 3D visual elements using React Three Fiber
+- 🌙 Dark theme with beautiful 3D card effects
+- 🤖 AI-generated summaries of articles
+- 📰 Real-time news from multiple sources
+- 🔍 Personalized content based on interests
+- 📱 Responsive design for all devices
+- 🗺️ Local news based on your location
+- 🔥 Trending news section
+- 🌎 National and global news
 
-## Technologies
-
-- React with TypeScript
-- Tailwind CSS
-- Vite
-- Supabase for authentication
-- AI summaries via OpenRouter
-- Express server for production deployment
-- Unit testing with Vitest
-- E2E testing with Playwright
-
-## Tech Stack
-
-- **Frontend**: React, TypeScript, Tailwind CSS, Framer Motion
-- **Authentication/Database**: Supabase
-- **Testing**: Vitest (unit), Playwright (E2E)
-- **Deployment**: Render
-
-## Getting Started
+## Setup Instructions
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 16+ and npm
+- API keys for the supported news services
 
 ### Installation
 
-1. Clone the repository
-   ```bash
-   git clone https://github.com/yourusername/newspaper-ai.git
-   cd newspaper-ai
-   ```
-
-2. Install dependencies
-   ```bash
-   npm install
-   ```
-
-3. Create a `.env` file in the root directory with your Supabase credentials
-   ```
-   VITE_SUPABASE_URL=your_supabase_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-
-4. Start the development server
-   ```bash
-   npm run dev
-   ```
-
-## Testing
-
-### Unit Tests
-
+1. Clone the repository:
 ```bash
-npm test
+git clone https://github.com/your-username/newspaper-ai.git
+cd newspaper-ai
 ```
 
-For watch mode:
+2. Install dependencies:
 ```bash
-npm run test:watch
+npm install
 ```
 
-### E2E Tests
+3. Create a `.env` file based on the `.env.example` and add your API keys:
+```
+# Supabase Configuration
+VITE_SUPABASE_URL=your_supabase_url_here
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 
-```bash
-npm run test:e2e
+# News API Keys
+VITE_NEWSAPI_KEY=your_newsapi_key_here
+VITE_THENEWSAPI_KEY=your_thenewsapi_key_here
+VITE_NEWSDATA_KEY=your_newsdata_key_here
+VITE_APITUBE_KEY=your_apitube_key_here
+
+# OpenAI API Key for AI summaries
+VITE_OPENAI_API_KEY=your_openai_key_here
+
+# Radar API Key for location services
+VITE_RADAR_PUBLISHABLE_KEY=your_radar_publishable_key_here
 ```
 
-## Deployment
+4. Start the development server:
+```bash
+npm run dev
+```
 
-The app can be deployed to Render using the `render.yaml` configuration file. 
+### Getting API Keys
 
-### GitHub Actions CI/CD
+- **NewsAPI**: Register at [newsapi.org](https://newsapi.org) to get a free API key
+- **TheNewsAPI**: Sign up at [thenewsapi.com](https://thenewsapi.com) for an API key
+- **NewsData.io**: Get your API key from [newsdata.io](https://newsdata.io)
+- **APITube**: Obtain a key from [apitube.io](https://apitube.io)
+- **OpenAI**: Get your API key from [platform.openai.com](https://platform.openai.com)
+- **Radar**: Sign up at [radar.io](https://radar.io) for location services
 
-The repository includes GitHub Actions workflows:
-- `ci.yml`: Runs on pull requests to validate code quality and tests
-- `deploy.yml`: Deploys to Render when changes are merged to main
+## Architecture
 
-### Manual Deployment
+The app is built with:
+- **Frontend**: React, Tailwind CSS, Framer Motion
+- **State Management**: React Context API
+- **Authentication**: Supabase Auth
+- **Database**: Supabase
+- **News Data**: Multiple news APIs
+- **AI**: OpenAI for summaries and relevance scoring
 
-1. Create a new static site on Render
-2. Connect your GitHub repository
-3. Use the following settings:
-   - Build Command: `npm ci && npm run build`
-   - Publish Directory: `dist`
-4. Add environment variables:
-   - `VITE_SUPABASE_URL`: Your Supabase URL
-   - `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+## Dark Theme
 
-## Project Structure
+The application uses a modern dark theme with 3D card effects. Key components of the theme include:
 
-- `src/components`: Reusable UI components
-- `src/pages`: Page components
-- `src/contexts`: React contexts for state management
-- `src/services`: Service modules for API calls
-- `src/types`: TypeScript type definitions
-- `tests/`: Test files
+- **Core Color Palette**: Dark backgrounds with high contrast text and vibrant accents
+- **3D Card System**: Cards use perspective transforms and subtle shadows
+- **Typography System**: Responsive typography with well-defined hierarchy
+- **Animation System**: Smooth transitions and interactions throughout the app
+
+For more details on the dark theme implementation, see [DARK_THEME.md](./DARK_THEME.md).
+
+## Available Scripts
+
+- `npm run dev` - Start the development server
+- `npm run build` - Build for production
+- `npm run serve` - Preview the production build
+- `npm run test` - Run tests
+- `npm run lint` - Run linter
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-Distributed under the MIT License. See `LICENSE` for more information. # newspaper
+This project is licensed under the MIT License - see the LICENSE file for details.

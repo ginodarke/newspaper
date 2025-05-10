@@ -10,6 +10,7 @@ export interface Article {
   url: string;
   isLocalNews?: boolean;
   relevanceReason?: string;
+  locationRelevance?: string;
   aiSummary?: string;
   summary?: string;
   readTime: number;

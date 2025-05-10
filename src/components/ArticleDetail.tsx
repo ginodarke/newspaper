@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Article } from '../types';
 import { getAISummary } from '../services/news';
-import { Clock, Eye, Share2, Bookmark, ExternalLink, Cpu, FileText, ChevronLeft } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Clock, Eye, Share2, Bookmark, ExternalLink, Cpu, FileText, ChevronLeft, List, MapPin, Target } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ArticleDetailProps {
   article: Article;
@@ -31,11 +31,22 @@ export default function ArticleDetail({ article, onSave, onShare, onClose }: Art
     }
   };
 
+  // Extract bullet points from key features or create them from content
+  const bulletPoints = article.keyFeatures || 
+    article.description?.split('. ').filter(s => s.length > 10).slice(0, 3) || 
+    ['No summary available'];
+
+  // Location impact - either use provided or create a default
+  const locationImpact = article.locationRelevance || 
+    article.relevanceReason || 
+    'This news may be relevant to your interests.';
+
   return (
     <motion.div 
       className="rounded-xl bg-secondary-bg shadow-elevation-3 inner-light overflow-hidden"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
       transition={{ duration: 0.5, type: 'spring', stiffness: 300, damping: 30 }}
       style={{ perspective: '1000px' }}
     >
@@ -92,31 +103,72 @@ export default function ArticleDetail({ article, onSave, onShare, onClose }: Art
           
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <img
-                src={article.author.avatar}
-                alt={article.author.name}
-                className="h-10 w-10 rounded-full border border-border shadow-elevation-1"
-              />
+              <div className="h-10 w-10 rounded-full border border-border shadow-elevation-1 bg-primary-bg/30 flex items-center justify-center overflow-hidden">
+                {article.author?.avatar ? (
+                  <img
+                    src={article.author.avatar}
+                    alt={article.author?.name || 'Author'}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://source.unsplash.com/random/100x100?portrait';
+                    }}
+                  />
+                ) : (
+                  <span className="text-lg font-bold text-primary">
+                    {article.author?.name?.[0] || 'A'}
+                  </span>
+                )}
+              </div>
               <div>
-                <p className="font-medium text-text-primary">{article.author.name}</p>
+                <p className="font-medium text-text-primary">{article.author?.name || 'Unknown Author'}</p>
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-1">
                 <Clock className="h-4 w-4 text-primary" />
-                <span className="text-sm text-text-secondary">{article.readTime} min</span>
+                <span className="text-sm text-text-secondary">{article.readTime || 3} min</span>
               </div>
               <div className="flex items-center space-x-1">
                 <Eye className="h-4 w-4 text-primary" />
-                <span className="text-sm text-text-secondary">{article.views}</span>
+                <span className="text-sm text-text-secondary">{article.views || 0}</span>
               </div>
             </div>
           </div>
         </div>
         
+        {/* Key Points Card - Always visible */}
+        <motion.div 
+          className="p-5 mb-8 rounded-lg bg-primary-bg/20 border border-border shadow-elevation-1 text-text-primary relative overflow-hidden"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+        >
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/30 to-secondary/30"></div>
+          <h3 className="font-medium text-primary mb-3 flex items-center">
+            <List size={16} className="mr-2" />
+            Key Points
+          </h3>
+          <ul className="space-y-2">
+            {bulletPoints.map((point, index) => (
+              <li key={index} className="flex items-start">
+                <span className="inline-block w-2 h-2 rounded-full bg-primary mt-1.5 mr-2 flex-shrink-0"></span>
+                <span className="text-sm leading-relaxed">{point}</span>
+              </li>
+            ))}
+          </ul>
+          
+          {/* Location Relevance */}
+          <div className="mt-4 p-3 bg-primary-bg/30 rounded border-l-2 border-primary/50">
+            <div className="flex items-start">
+              <Target size={14} className="text-primary mt-0.5 mr-1.5 flex-shrink-0" />
+              <p className="text-xs text-text-secondary">{locationImpact}</p>
+            </div>
+          </div>
+        </motion.div>
+        
         {/* Tab Navigation */}
-        <div className="w-full mb-8">
+        <div className="w-full mb-4">
           <div className="flex border-b border-border">
             <motion.button
               className={`flex items-center px-4 py-3 text-sm font-medium transition-all relative ${
@@ -161,81 +213,96 @@ export default function ArticleDetail({ article, onSave, onShare, onClose }: Art
         
         {/* Tab Content */}
         <div className="min-h-[300px]">
-          {activeTab === 'content' && (
-            <motion.div 
-              className="prose dark:prose-invert prose-sm max-w-none text-text-primary"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              key="content-tab"
-            >
-              <p className="leading-relaxed">{article.content || article.description}</p>
-            </motion.div>
-          )}
-          
-          {activeTab === 'summary' && (
-            <motion.div 
-              className="space-y-6"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              key="summary-tab"
-            >
+          <AnimatePresence mode="wait">
+            {activeTab === 'content' && (
               <motion.div 
-                className="p-5 rounded-lg bg-primary-bg/30 border border-border shadow-elevation-1 text-text-primary relative overflow-hidden"
-                whileHover={{ y: -2, boxShadow: 'var(--elevation-2)' }}
-                transition={{ duration: 0.2 }}
+                className="prose dark:prose-invert prose-sm max-w-none text-text-primary"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                key="content-tab"
               >
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/30 to-secondary/30"></div>
-                <h3 className="font-medium text-primary mb-2 flex items-center">
-                  <Cpu size={16} className="mr-2" />
-                  AI Generated Summary
-                </h3>
-                <p className="text-sm leading-relaxed">
-                  {article.aiSummary || "AI summary not available for this article."}
-                </p>
-              </motion.div>
-              
-              {!fullSummary && !loadingSummary && article.aiSummary && (
-                <motion.button
-                  className="px-5 py-3 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-all shadow-elevation-1 hover:shadow-elevation-2"
-                  onClick={loadFullSummary}
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.98 }}
+                <p className="leading-relaxed mb-4">{article.content || article.description}</p>
+                
+                {/* Read more link */}
+                <a 
+                  href={article.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center mt-4 text-primary hover:text-primary/80 transition-colors font-medium"
                 >
-                  Generate Full AI Analysis
-                </motion.button>
-              )}
-              
-              {loadingSummary && (
-                <div className="flex items-center space-x-3 text-text-primary p-4 bg-primary-bg/20 rounded-lg">
-                  <div className="animate-pulse-glow w-5 h-5 rounded-full bg-primary/50"></div>
-                  <p>Generating comprehensive analysis...</p>
-                </div>
-              )}
-              
-              {fullSummary && (
+                  Read full article
+                  <ExternalLink className="h-4 w-4 ml-1" />
+                </a>
+              </motion.div>
+            )}
+            
+            {activeTab === 'summary' && (
+              <motion.div 
+                className="space-y-6"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                key="summary-tab"
+              >
                 <motion.div 
                   className="p-5 rounded-lg bg-primary-bg/30 border border-border shadow-elevation-1 text-text-primary relative overflow-hidden"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
                   whileHover={{ y: -2, boxShadow: 'var(--elevation-2)' }}
                   transition={{ duration: 0.2 }}
                 >
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent-blue/30 to-primary/30"></div>
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/30 to-secondary/30"></div>
                   <h3 className="font-medium text-primary mb-2 flex items-center">
                     <Cpu size={16} className="mr-2" />
-                    Comprehensive Analysis
+                    AI Generated Summary
                   </h3>
-                  <p className="text-sm leading-relaxed">{fullSummary}</p>
+                  <p className="text-sm leading-relaxed">
+                    {article.aiSummary || "AI summary not available for this article."}
+                  </p>
                 </motion.div>
-              )}
-            </motion.div>
-          )}
+                
+                {!fullSummary && !loadingSummary && article.aiSummary && (
+                  <motion.button
+                    className="px-5 py-3 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-all shadow-elevation-1 hover:shadow-elevation-2"
+                    onClick={loadFullSummary}
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Generate Full AI Analysis
+                  </motion.button>
+                )}
+                
+                {loadingSummary && (
+                  <div className="flex items-center space-x-3 text-text-primary p-4 bg-primary-bg/20 rounded-lg">
+                    <div className="animate-pulse w-5 h-5 rounded-full bg-primary/50"></div>
+                    <p>Generating comprehensive analysis...</p>
+                  </div>
+                )}
+                
+                {fullSummary && (
+                  <motion.div 
+                    className="p-5 rounded-lg bg-primary-bg/30 border border-border shadow-elevation-1 text-text-primary relative overflow-hidden"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    whileHover={{ y: -2, boxShadow: 'var(--elevation-2)' }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent-blue/30 to-primary/30"></div>
+                    <h3 className="font-medium text-primary mb-2 flex items-center">
+                      <Cpu size={16} className="mr-2" />
+                      Comprehensive Analysis
+                    </h3>
+                    <p className="text-sm leading-relaxed">{fullSummary}</p>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Article Actions */}
-        <div className="flex items-center justify-between pt-6 mt-8 border-t border-border">
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-6 mt-8 border-t border-border">
           <div className="flex items-center space-x-3">
             {onSave && (
               <motion.button
@@ -266,12 +333,12 @@ export default function ArticleDetail({ article, onSave, onShare, onClose }: Art
             href={article.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary bg-primary/10 rounded-lg hover:bg-primary/20 transition-all"
-            whileHover={{ x: 2 }}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground transition-all shadow-elevation-1 hover:shadow-elevation-2"
+            whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}
           >
-            Read original
-            <ExternalLink className="h-4 w-4 ml-2" />
+            <ExternalLink className="h-4 w-4 mr-2" />
+            View Original
           </motion.a>
         </div>
       </div>

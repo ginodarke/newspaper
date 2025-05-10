@@ -59,7 +59,70 @@ export async function getArticles(options: GetArticlesOptions): Promise<Articles
     
     console.log(`Fetching articles: page=${page}, pageSize=${pageSize}, category=${category || 'All'}, sortBy=${sortBy}, country=${country}`);
     
-    // First try to get real articles using our existing function
+    // Try multiple news APIs in parallel to get the most recent and relevant articles
+    const apiPromises = [
+      fetchFromTheNewsAPI(category, userLocation).catch(() => []),
+      fetchFromNewsDataIO(category, userLocation).catch(() => []),
+      fetchFromNewsAPI(category, userLocation).catch(() => [])
+    ];
+    
+    // Wait for all API calls to complete
+    const resultsArray = await Promise.all(apiPromises);
+    
+    // Combine all results, removing duplicates by URL
+    const uniqueUrls = new Set<string>();
+    let combinedArticles: Article[] = [];
+    
+    for (const articles of resultsArray) {
+      for (const article of articles) {
+        if (!uniqueUrls.has(article.url)) {
+          uniqueUrls.add(article.url);
+          combinedArticles.push(article);
+        }
+      }
+    }
+    
+    // If we have at least some articles from APIs, use them
+    if (combinedArticles.length >= 5) {
+      console.log(`Found ${combinedArticles.length} articles from real APIs`);
+      
+      // Add AI summaries and location relevance
+      const enhancedArticles = await enhanceArticlesWithAI(combinedArticles, userLocation);
+      
+      // Apply sorting based on sortBy parameter
+      let sortedArticles = [...enhancedArticles];
+      
+      if (sortBy === 'popularity') {
+        sortedArticles.sort((a, b) => (b.views || 0) - (a.views || 0));
+      } else if (sortBy === 'newest' || sortBy === 'publishedAt') {
+        sortedArticles.sort((a, b) => 
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+        );
+      } else if (sortBy === 'relevance' && options.userPreferences) {
+        // For relevance, we would need a more complex algorithm based on user preferences
+        // This is a simplified version
+        const userInterests = options.userPreferences.categories || [];
+        sortedArticles.sort((a, b) => {
+          const aRelevance = userInterests.includes(a.category) ? 1 : 0;
+          const bRelevance = userInterests.includes(b.category) ? 1 : 0;
+          return bRelevance - aRelevance;
+        });
+      }
+      
+      // Calculate pagination
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      const paginatedArticles = sortedArticles.slice(start, end);
+      
+      return {
+        articles: paginatedArticles,
+        totalResults: sortedArticles.length
+      };
+    }
+    
+    // If API calls didn't return enough articles, fall back to old approach
+    console.log("Not enough articles from direct API calls, falling back to secondary approach");
+    
     try {
       const articlesArray = await getArticlesOld(category, userLocation);
       
@@ -92,13 +155,14 @@ export async function getArticles(options: GetArticlesOptions): Promise<Articles
         totalResults: sortedArticles.length
       };
     } catch (error) {
-      console.error('Error fetching real articles, falling back to mocks:', error);
+      console.error('Error fetching articles with secondary approach:', error);
     }
     
-    // Fall back to mock data if real API calls fail
+    // Ultimate fallback - use mock data
+    console.log("All API attempts failed, using mock data");
     const mockArticles = getMockArticles();
     let filteredMocks = category 
-      ? mockArticles.filter(article => article.category === category)
+      ? mockArticles.filter(article => article.category.toLowerCase() === (category.toLowerCase() || ''))
       : mockArticles;
     
     // Apply sorting to mock articles
@@ -1160,11 +1224,68 @@ export async function getRelatedArticles(article: Article): Promise<Article[]> {
 }
 
 export async function getTrendingArticles(): Promise<Article[]> {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  
-  const mockArticles = getMockArticles();
-  return [...mockArticles].sort((a, b) => (b.trendingScore || 0) - (a.trendingScore || 0)).slice(0, 5);
+  try {
+    console.log('Fetching trending articles from APIs');
+    
+    // Try multiple news APIs in parallel to get the most trending articles
+    const apiPromises = [
+      fetchFromTheNewsAPI(null).catch(() => []),
+      fetchFromNewsDataIO(null).catch(() => []),
+      fetchFromNewsAPI(null).catch(() => [])
+    ];
+    
+    // Wait for all API calls to complete
+    const resultsArray = await Promise.all(apiPromises);
+    
+    // Combine all results, removing duplicates by URL
+    const uniqueUrls = new Set<string>();
+    let combinedArticles: Article[] = [];
+    
+    for (const articles of resultsArray) {
+      for (const article of articles) {
+        if (!uniqueUrls.has(article.url)) {
+          uniqueUrls.add(article.url);
+          combinedArticles.push(article);
+        }
+      }
+    }
+    
+    // If we have at least some articles from APIs, use them
+    if (combinedArticles.length >= 5) {
+      console.log(`Found ${combinedArticles.length} trending articles from real APIs`);
+      
+      // Sort by trending score or views
+      const sortedArticles = combinedArticles.sort((a, b) => {
+        // First check trending score
+        const aTrending = a.trendingScore || 0;
+        const bTrending = b.trendingScore || 0;
+        
+        if (bTrending !== aTrending) {
+          return bTrending - aTrending;
+        }
+        
+        // If trending scores are equal, sort by views
+        return (b.views || 0) - (a.views || 0);
+      });
+      
+      // Return top trending articles
+      return sortedArticles.slice(0, 15);
+    }
+    
+    // Fallback to mock trending data
+    console.log('No trending articles found from APIs, using mock data');
+    const mockArticles = getMockArticles();
+    return [...mockArticles]
+      .sort((a, b) => (b.trendingScore || 0) - (a.trendingScore || 0))
+      .slice(0, 5);
+  } catch (error) {
+    console.error('Error fetching trending articles:', error);
+    // Ultimate fallback - use mock data
+    const mockArticles = getMockArticles();
+    return [...mockArticles]
+      .sort((a, b) => (b.trendingScore || 0) - (a.trendingScore || 0))
+      .slice(0, 5);
+  }
 }
 
 export async function getCategoryArticles(category: string): Promise<Article[]> {
@@ -1185,15 +1306,6 @@ export async function getLocalNews(location: { lat: number; lng: number }): Prom
   return mockArticles.filter((article: Article) => article.isLocalNews);
 }
 
-export async function getSavedArticles(): Promise<Article[]> {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  
-  // In a real app, this would fetch from a database
-  const mockArticles = getMockArticles();
-  return mockArticles.slice(0, 3);
-}
-
 export async function saveArticle(articleId: string): Promise<void> {
   // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -1201,3 +1313,36 @@ export async function saveArticle(articleId: string): Promise<void> {
   // In a real app, this would save to a database
   console.log(`Saving article ${articleId}`);
 }
+
+// Function to get user saved articles (keeping the version with userId)
+export const getSavedArticles = async (userId?: string): Promise<Article[]> => {
+  try {
+    console.log(`Fetching saved articles${userId ? ` for user ${userId}` : ''}`);
+    // Normally you would fetch from database, but for now we'll use a subset of mock articles
+    const articlesData = await getArticles({ pageSize: 10 });
+    const mockSavedArticles = articlesData.articles
+      .filter((_, index) => index % 3 === 0) // Just grab some random articles
+      .map(article => ({
+        ...article,
+        isSaved: true
+      }));
+    
+    return mockSavedArticles;
+  } catch (error) {
+    console.error('Error fetching saved articles:', error);
+    throw new Error('Failed to fetch saved articles');
+  }
+};
+
+// Function to remove an article from saved
+export const removeFromSaved = async (userId: string, articleId: string): Promise<void> => {
+  try {
+    console.log(`Removing article ${articleId} from saved for user ${userId}`);
+    // In a real app, this would communicate with a database
+    // For now just log it
+    return Promise.resolve();
+  } catch (error) {
+    console.error('Error removing article from saved:', error);
+    throw new Error('Failed to remove article from saved');
+  }
+};

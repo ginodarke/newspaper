@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronRight, TrendingUp, Globe, Zap } from 'lucide-react';
+import { ChevronRight, TrendingUp, Globe, Zap, MapPin, AlertCircle } from 'lucide-react';
 
 import { Article } from '../types';
-import { getArticles } from '../services/news';
+import { getArticles, getTrendingArticles } from '../services/news';
+import { getUserLocation } from '../services/location';
 import NewsCard from '../components/NewsCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { categories } from '../components/layout/Sidebar';
@@ -12,6 +13,7 @@ import { categories } from '../components/layout/Sidebar';
 export default function Home() {
   const [trendingArticles, setTrendingArticles] = useState<Article[]>([]);
   const [localArticles, setLocalArticles] = useState<Article[]>([]);
+  const [nationalArticles, setNationalArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -20,22 +22,67 @@ export default function Home() {
     const loadFeaturedArticles = async () => {
       try {
         setLoading(true);
+        setError(null);
+        
+        // Get user location if available
+        let location = undefined;
+        
+        try {
+          location = await getUserLocation();
+        } catch (err) {
+          console.error('Error getting user location:', err);
+        }
         
         // Get trending articles
-        const { articles: trending } = await getArticles({ 
-          pageSize: 6, 
-          sortBy: 'popularity' 
-        });
+        let trending = [];
+        try {
+          trending = await getTrendingArticles();
+          console.log(`Fetched ${trending.length} trending articles`);
+        } catch (err) {
+          console.error('Error getting trending articles:', err);
+          
+          // Fallback to regular articles with popularity sorting
+          const { articles } = await getArticles({
+            pageSize: 6,
+            sortBy: 'popularity'
+          });
+          trending = articles;
+        }
         
-        // Get local articles
-        const { articles: local } = await getArticles({ 
-          pageSize: 3, 
-          category: 'general',
-          country: 'us' // Default to US if no location available
-        });
+        // Get local articles if location available
+        let local: Article[] = [];
+        if (location) {
+          try {
+            const { articles } = await getArticles({
+              pageSize: 4,
+              location,
+              sortBy: 'relevance'
+            });
+            local = articles;
+            console.log(`Fetched ${local.length} local articles`);
+          } catch (err) {
+            console.error('Error getting local articles:', err);
+          }
+        }
+        
+        // Get national articles
+        let national: Article[] = [];
+        try {
+          const country = location?.country || 'us';
+          const { articles } = await getArticles({
+            pageSize: 4,
+            country,
+            category: 'general'
+          });
+          national = articles;
+          console.log(`Fetched ${national.length} national articles`);
+        } catch (err) {
+          console.error('Error getting national articles:', err);
+        }
         
         setTrendingArticles(trending);
         setLocalArticles(local);
+        setNationalArticles(national);
       } catch (err) {
         setError('Failed to load featured articles');
         console.error('Error loading featured articles:', err);
@@ -75,102 +122,85 @@ export default function Home() {
     }
   };
   
-  const categoryItemVariants = {
-    hidden: { scale: 0.95, opacity: 0 },
+  const sectionHeaderVariants = {
+    hidden: { opacity: 0, x: -20 },
     visible: { 
-      scale: 1, 
-      opacity: 1,
+      opacity: 1, 
+      x: 0,
       transition: { 
         type: 'spring',
-        stiffness: 260,
-        damping: 20
+        stiffness: 100,
+        damping: 10
       }
     }
   };
+
+  // Show loading spinner during initial load
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[calc(100vh-80px)]">
+        <LoadingSpinner size="large" />
+      </div>
+    );
+  }
   
   return (
-    <div className="container mx-auto px-4 py-12">
-      {/* Hero Section */}
-      <motion.section 
-        className="mb-16 relative overflow-hidden rounded-3xl bg-primary-bg-dark p-8 md:p-12 shadow-elevation-2"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="max-w-3xl">
-          <motion.h1 
-            className="text-3xl md:text-5xl font-bold mb-4 text-text-primary"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            Your <span className="text-primary">personalized</span> news experience
-          </motion.h1>
-          <motion.p 
-            className="text-lg md:text-xl text-text-secondary mb-8"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-          >
-            AI-powered news curation tailored to your interests. Stay informed with relevant stories that matter to you.
-          </motion.p>
-          <motion.div 
-            className="flex flex-col sm:flex-row gap-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.5 }}
-          >
-            <Link 
-              to="/feed" 
-              className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-md font-medium shadow-elevation-1 hover:shadow-elevation-2 transition-all"
-            >
-              Browse News Feed
-            </Link>
-            <Link 
-              to="/auth" 
-              className="bg-secondary-bg hover:bg-secondary-bg/90 text-text-primary px-6 py-3 rounded-md font-medium shadow-elevation-1 hover:shadow-elevation-2 transition-all"
-            >
-              Sign Up for Free
-            </Link>
-          </motion.div>
+    <div className="container mx-auto px-4 py-8">
+      {error && (
+        <div className="mb-8 p-4 bg-primary-bg border border-border rounded-lg flex items-center">
+          <AlertCircle size={20} className="mr-2 flex-shrink-0 text-primary" />
+          <p className="text-text-primary">{error}</p>
         </div>
-        
-        {/* Decorative Elements */}
-        <div className="absolute right-0 bottom-0 w-64 h-64 blur-3xl rounded-full bg-primary/20 -mr-20 -mb-20 opacity-50"></div>
-        <div className="absolute right-32 top-0 w-32 h-32 blur-3xl rounded-full bg-accent-blue/30 -mr-10 -mt-10 opacity-50"></div>
-      </motion.section>
+      )}
+      
+      {/* Welcome Section */}
+      <motion.div 
+        className="mb-12 text-center"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.5 }}
+      >
+        <h1 className="text-4xl font-bold mb-3 text-text-primary">
+          <span className="text-primary">Newspaper</span>
+          <span className="text-secondary">.AI</span>
+        </h1>
+        <p className="text-text-secondary max-w-2xl mx-auto">
+          Your personalized AI-powered news experience. Discover articles that matter to you with insightful summaries and analysis.
+        </p>
+      </motion.div>
       
       {/* Trending News Section */}
-      <motion.section 
-        className="mb-16"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <div className="flex justify-between items-center mb-6">
-          <motion.div className="flex items-center" variants={itemVariants}>
-            <TrendingUp size={24} className="mr-2 text-primary" />
-            <h2 className="text-2xl font-bold text-text-primary">Trending News</h2>
-          </motion.div>
-          <motion.div variants={itemVariants}>
-            <Link to="/feed" className="text-primary hover:text-primary/80 font-medium flex items-center">
-              View all <ChevronRight size={16} />
-            </Link>
-          </motion.div>
-        </div>
-        
-        {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <LoadingSpinner size="large" />
+      <section className="mb-12">
+        <motion.div 
+          className="flex items-baseline justify-between mb-6"
+          variants={sectionHeaderVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <div className="flex items-center">
+            <TrendingUp size={24} className="text-primary mr-3" />
+            <h2 className="text-2xl font-bold text-text-primary">Trending Now</h2>
           </div>
-        ) : error ? (
-          <p className="text-red-500">{error}</p>
+          <Link 
+            to="/trending" 
+            className="text-sm font-medium text-primary flex items-center hover:text-primary/80 transition-colors"
+          >
+            View All <ChevronRight size={16} />
+          </Link>
+        </motion.div>
+        
+        {trendingArticles.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-lg text-text-secondary">No trending news available right now.</p>
+          </div>
         ) : (
           <motion.div 
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             variants={containerVariants}
+            initial="hidden"
+            animate="visible"
           >
-            {trendingArticles.slice(0, 6).map((article, index) => (
+            {trendingArticles.slice(0, 4).map((article, index) => (
               <motion.div key={article.id} variants={itemVariants}>
                 <NewsCard 
                   article={article}
@@ -184,74 +214,40 @@ export default function Home() {
             ))}
           </motion.div>
         )}
-      </motion.section>
+      </section>
       
-      {/* Categories Section */}
-      <motion.section 
-        className="mb-16"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <motion.h2 
-          className="text-2xl font-bold mb-6 text-text-primary flex items-center"
-          variants={itemVariants}
-        >
-          <Globe size={24} className="mr-2 text-primary" />
-          Explore Categories
-        </motion.h2>
-        
-        <motion.div 
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
-          variants={containerVariants}
-        >
-          {categories.map((category, index) => (
-            <motion.div key={category.key} variants={categoryItemVariants} custom={index}>
-              <Link
-                to={`/category/${category.key}`}
-                className="bg-secondary-bg hover:bg-primary-bg text-text-primary p-6 rounded-lg flex flex-col items-center justify-center text-center transition-all hover:shadow-elevation-2 shadow-elevation-1 inner-light aspect-square"
-              >
-                <span className="text-primary text-2xl mb-3">{category.icon}</span>
-                <span className="font-medium">{category.label}</span>
-              </Link>
-            </motion.div>
-          ))}
-        </motion.div>
-      </motion.section>
-      
-      {/* Local News Section */}
-      <motion.section 
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <div className="flex justify-between items-center mb-6">
-          <motion.div className="flex items-center" variants={itemVariants}>
-            <Zap size={24} className="mr-2 text-primary" />
-            <h2 className="text-2xl font-bold text-text-primary">Local News</h2>
-          </motion.div>
-          <motion.div variants={itemVariants}>
-            <Link to="/local" className="text-primary hover:text-primary/80 font-medium flex items-center">
-              View all <ChevronRight size={16} />
+      {/* Local News Section (if available) */}
+      {localArticles.length > 0 && (
+        <section className="mb-12">
+          <motion.div 
+            className="flex items-baseline justify-between mb-6"
+            variants={sectionHeaderVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <div className="flex items-center">
+              <MapPin size={24} className="text-primary mr-3" />
+              <h2 className="text-2xl font-bold text-text-primary">Local News</h2>
+            </div>
+            <Link 
+              to="/local" 
+              className="text-sm font-medium text-primary flex items-center hover:text-primary/80 transition-colors"
+            >
+              View All <ChevronRight size={16} />
             </Link>
           </motion.div>
-        </div>
-        
-        {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <LoadingSpinner size="large" />
-          </div>
-        ) : error ? (
-          <p className="text-red-500">{error}</p>
-        ) : (
+          
           <motion.div 
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             variants={containerVariants}
+            initial="hidden"
+            animate="visible"
           >
             {localArticles.slice(0, 3).map((article, index) => (
               <motion.div key={article.id} variants={itemVariants}>
                 <NewsCard 
                   article={article}
+                  featured={false}
                   size="medium"
                   onClick={() => handleArticleClick(article)}
                   onSave={() => {}}
@@ -260,7 +256,74 @@ export default function Home() {
               </motion.div>
             ))}
           </motion.div>
-        )}
+        </section>
+      )}
+      
+      {/* National News */}
+      {nationalArticles.length > 0 && (
+        <section className="mb-12">
+          <motion.div 
+            className="flex items-baseline justify-between mb-6"
+            variants={sectionHeaderVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <div className="flex items-center">
+              <Globe size={24} className="text-primary mr-3" />
+              <h2 className="text-2xl font-bold text-text-primary">National Headlines</h2>
+            </div>
+            <Link 
+              to="/national" 
+              className="text-sm font-medium text-primary flex items-center hover:text-primary/80 transition-colors"
+            >
+              View All <ChevronRight size={16} />
+            </Link>
+          </motion.div>
+          
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {nationalArticles.slice(0, 3).map((article, index) => (
+              <motion.div key={article.id} variants={itemVariants}>
+                <NewsCard 
+                  article={article}
+                  featured={false}
+                  size="medium"
+                  onClick={() => handleArticleClick(article)}
+                  onSave={() => {}}
+                  onShare={() => {}}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        </section>
+      )}
+      
+      {/* Discover More */}
+      <motion.section 
+        className="mt-16 mb-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.5 }}
+      >
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-2xl font-bold mb-6 text-text-primary">Discover News Categories</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {categories.slice(0, 8).map((category) => (
+              <Link 
+                key={category.key} 
+                to={`/category/${category.key}`}
+                className="flex flex-col items-center justify-center p-4 rounded-lg bg-card-gradient hover:shadow-elevation-2 transition-all hover:translate-y-[-2px]"
+              >
+                <span className="text-primary mb-2">{category.icon}</span>
+                <span className="text-sm font-medium text-text-primary">{category.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
       </motion.section>
     </div>
   );
