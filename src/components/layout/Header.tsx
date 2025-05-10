@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Menu, X, Sun, Moon, Search, Bell, User } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -24,31 +25,40 @@ export default function Header({ onMenuClick }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-overlay w-full border-b border-border bg-primary-bg-dark/95 backdrop-blur supports-[backdrop-filter]:bg-primary-bg-dark/80">
       <div className="container flex h-16 items-center max-w-7xl">
         {/* Mobile menu button */}
-        <button
-          className="mr-4 p-2 rounded-md md:hidden hover:bg-accent hover:text-accent-foreground"
+        <motion.button
+          className="mr-4 p-2 rounded-md md:hidden hover:bg-primary-bg-light text-text-primary"
           onClick={onMenuClick}
           aria-label="Toggle menu"
+          whileTap={{ scale: 0.95 }}
         >
           <Menu className="h-6 w-6" />
-        </button>
+        </motion.button>
 
         {/* Logo */}
         <Link to="/" className="mr-8 flex items-center space-x-2">
-          <span className="text-xl font-bold text-primary">Newspaper<span className="text-secondary">.AI</span></span>
+          <motion.span 
+            className="text-xl font-bold" 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <span className="text-primary">Newspaper</span>
+            <span className="text-secondary">.AI</span>
+          </motion.span>
         </Link>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-          <Link to="/feed" className="transition-colors hover:text-primary">
+          <Link to="/feed" className="transition-colors text-text-primary hover:text-primary">
             Feed
           </Link>
-          <Link to="/categories" className="text-muted-foreground transition-colors hover:text-primary">
+          <Link to="/categories" className="text-text-secondary transition-colors hover:text-primary">
             Categories
           </Link>
-          <Link to="/saved" className="text-muted-foreground transition-colors hover:text-primary">
+          <Link to="/saved" className="text-text-secondary transition-colors hover:text-primary">
             Saved
           </Link>
         </nav>
@@ -56,17 +66,21 @@ export default function Header({ onMenuClick }: HeaderProps) {
         <div className="flex flex-1 items-center justify-end space-x-2">
           {/* Search Button & Form */}
           <div className="relative">
-            <button
-              className="p-2 rounded-full hover:bg-accent hover:text-accent-foreground"
+            <motion.button
+              className="p-2 rounded-full text-text-primary hover:bg-primary-bg-light"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
               aria-label="Search"
+              whileTap={{ scale: 0.95 }}
             >
               <Search className="h-5 w-5" />
-            </button>
+            </motion.button>
             {isSearchOpen && (
-              <form
+              <motion.form
                 onSubmit={handleSearch}
-                className="absolute right-0 top-12 w-64 sm:w-72 rounded-md border bg-popover p-2 shadow-lg text-popover-foreground"
+                className="absolute right-0 top-12 w-64 sm:w-72 rounded-md border border-border bg-secondary-bg p-2 shadow-elevation-2 text-text-primary"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
               >
                 <div className="flex items-center space-x-2">
                   <input
@@ -74,57 +88,62 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search articles..."
-                    className="flex-1 bg-transparent px-2 py-1 text-sm outline-none placeholder:text-muted-foreground"
+                    className="flex-1 bg-transparent px-2 py-1 text-sm outline-none text-text-primary placeholder:text-text-secondary"
                     autoFocus
                   />
-                  <button
+                  <motion.button
                     type="submit"
                     className="rounded-md bg-primary px-3 py-1 text-sm text-primary-foreground hover:bg-primary/90"
+                    whileTap={{ scale: 0.95 }}
                   >
                     Search
-                  </button>
+                  </motion.button>
                 </div>
-              </form>
+              </motion.form>
             )}
           </div>
 
           {/* Theme Toggle */}
-          <button
+          <motion.button
             onClick={toggleTheme}
-            className="p-2 rounded-full hover:bg-accent hover:text-accent-foreground"
+            className="p-2 rounded-full text-text-primary hover:bg-primary-bg-light"
             aria-label="Toggle theme"
+            whileTap={{ scale: 0.95 }}
           >
             {theme === 'dark' ? (
               <Sun className="h-5 w-5" />
             ) : (
               <Moon className="h-5 w-5" />
             )}
-          </button>
+          </motion.button>
 
           {/* User Menu or Sign In Button */}
           {user ? (
             <div className="relative flex items-center space-x-2">
               <Link 
                 to="/onboarding"
-                className="hidden sm:block text-sm font-medium text-muted-foreground transition-colors hover:text-primary mr-2"
+                className="hidden sm:block text-sm font-medium text-text-secondary transition-colors hover:text-primary mr-2"
               >
                 Set Up Profile
               </Link>
-              <button
-                className="flex items-center space-x-2 p-2 rounded-full hover:bg-accent hover:text-accent-foreground"
+              <motion.button
+                className="flex items-center space-x-2 p-2 rounded-full text-text-primary hover:bg-primary-bg-light"
                 aria-label="User menu"
                 onClick={() => navigate('/profile')}
+                whileTap={{ scale: 0.95 }}
               >
                 <User className="h-5 w-5" />
-              </button>
+              </motion.button>
             </div>
           ) : (
-            <Link
-              to="/auth"
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
-            >
-              Sign In
-            </Link>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link
+                to="/auth"
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow-elevation-1 hover:bg-primary/90 h-9 px-4 py-2"
+              >
+                Sign In
+              </Link>
+            </motion.div>
           )}
         </div>
       </div>

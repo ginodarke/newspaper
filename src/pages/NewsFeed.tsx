@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 
 import { Article } from '../types';
-import ArticleCard from '../components/ArticleCard';
+import NewsCard from '../components/NewsCard';
 import ArticleDetail from '../components/ArticleDetail';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { getArticles, getArticleById } from '../services/news';
@@ -55,111 +55,104 @@ export default function NewsFeed() {
       setLoading(false);
     }
   };
-
-  // Load articles based on category and preferences
+  
+  // Load articles based on category
   const loadArticles = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Get user location for local news
-      let locationData = undefined;
-      try {
-        locationData = await getUserLocation();
-      } catch (locErr) {
-        console.warn('Could not get user location:', locErr);
+      // Get user's saved preferences and location if logged in
+      let location = undefined;
+      
+      if (user) {
+        try {
+          location = await getUserLocation();
+        } catch (err) {
+          console.error('Error getting user location:', err);
+        }
       }
       
-      // Get articles based on category or user preferences
-      const options = { 
-        category: category || undefined,
-        location: locationData,
-        userPreferences: user?.preferences ? {
-          categories: user.preferences.categories || [],
-          sources: user.preferences.sources || [],
-          interests: user.preferences.interests || [],
-          location: user.preferences.location || ''
-        } : undefined
+      // Set up options
+      const options = {
+        page: currentPage,
+        pageSize: articlesPerPage,
+        category: category || null,
+        location
       };
       
+      // Get articles with pagination
       const { articles: fetchedArticles, totalResults } = await getArticles(options);
       
-      if (fetchedArticles.length === 0) {
-        setError('No articles found. Try a different category or refresh.');
-      } else {
-        setArticles(fetchedArticles);
-        setTotalPages(Math.ceil(totalResults / articlesPerPage));
-      }
+      setArticles(fetchedArticles);
+      setTotalPages(Math.ceil(totalResults / articlesPerPage));
     } catch (err) {
-      setError('Failed to load articles. Please try again later.');
-      console.error('Error loading articles:', err);
+      setError('Error loading news feed');
+      console.error('Error loading news feed:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
-
+  
   // Handle refresh button click
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    loadArticles();
+    await loadArticles();
+    setRefreshing(false);
   };
-
-  // Handle pagination
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Handle article click to view details
+  
+  // Handle article click
   const handleArticleClick = (article: Article) => {
     setSelectedArticle(article);
-    // Update URL without full navigation
-    window.history.pushState({}, '', `/article/${article.id}`);
+    // Update URL without reloading
+    navigate(`/feed/${article.id}`, { replace: true });
   };
-
-  // Handle closing article detail view
-  const handleCloseArticleDetail = () => {
-    setSelectedArticle(null);
-    // Remove article ID from URL when closing detail view
-    if (articleId) {
-      navigate('/categories/' + (category || ''));
+  
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  // When current page changes, reload articles
+  useEffect(() => {
+    loadArticles();
+  }, [currentPage]);
+  
+  // Handle save article
+  const handleSaveArticle = (articleId: string) => {
+    // Add your save functionality here
+    console.log('Saving article:', articleId);
+  };
+  
+  // Handle share article
+  const handleShareArticle = (articleId: string) => {
+    // Add your share functionality here
+    console.log('Sharing article:', articleId);
+  };
+  
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
     }
   };
-
-  // Handle saving an article
-  const handleSaveArticle = (articleId: string) => {
-    console.log('Saving article:', articleId);
-    // Implement save functionality
+  
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { 
+      y: 0, 
+      opacity: 1,
+      transition: { 
+        type: 'spring',
+        stiffness: 260,
+        damping: 20
+      }
+    }
   };
-
-  // Handle sharing an article
-  const handleShareArticle = (articleId: string) => {
-    console.log('Sharing article:', articleId);
-    // Implement share functionality
-  };
-
-  if (loading && !refreshing) {
-    return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-
-  // If we have a selected article or article ID, show the article detail view
-  if (selectedArticle) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <ArticleDetail 
-          article={selectedArticle}
-          onClose={handleCloseArticleDetail}
-          onSave={handleSaveArticle}
-          onShare={() => handleShareArticle(selectedArticle.id)}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -184,43 +177,72 @@ export default function NewsFeed() {
         </div>
       )}
       
-      {articles.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {articles.map((article) => (
-            <ArticleCard 
-              key={article.id} 
-              article={article} 
-              onClick={() => handleArticleClick(article)}
-              onSave={() => handleSaveArticle(article.id)}
-              onShare={() => handleShareArticle(article.id)}
-            />
-          ))}
+      {selectedArticle ? (
+        <div className="mb-8">
+          <button 
+            onClick={() => {
+              setSelectedArticle(null);
+              navigate('/feed', { replace: true });
+            }}
+            className="mb-4 inline-flex items-center text-sm text-primary hover:text-primary/80"
+          >
+            ← Back to News Feed
+          </button>
+          <ArticleDetail article={selectedArticle} />
         </div>
-      ) : !error && !loading ? (
-        <div className="text-center py-12">
-          <p className="text-lg text-muted-foreground">No articles to display.</p>
-        </div>
-      ) : null}
-      
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-8 flex justify-center">
-          <nav className="flex items-center space-x-2">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => handlePageChange(page)}
-                className={`w-10 h-10 flex items-center justify-center rounded-md ${
-                  currentPage === page
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-card text-muted-foreground hover:bg-primary/10'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-          </nav>
-        </div>
+      ) : (
+        <>
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <LoadingSpinner size="large" />
+            </div>
+          ) : articles.length > 0 ? (
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {articles.map((article, index) => (
+                <motion.div key={article.id} variants={itemVariants}>
+                  <NewsCard 
+                    article={article}
+                    featured={index === 0}
+                    size={index === 0 ? 'large' : 'medium'}
+                    onClick={() => handleArticleClick(article)}
+                    onSave={handleSaveArticle}
+                    onShare={handleShareArticle}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          ) : !error ? (
+            <div className="text-center py-12">
+              <p className="text-lg text-text-secondary">No articles to display.</p>
+            </div>
+          ) : null}
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-8 flex justify-center">
+              <nav className="flex items-center space-x-2">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`w-10 h-10 flex items-center justify-center rounded-md ${
+                      currentPage === page
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary-bg text-text-secondary hover:bg-primary/10'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

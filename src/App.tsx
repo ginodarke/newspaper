@@ -40,9 +40,10 @@ function ErrorDisplay({ error }: { error: Error }) {
 // Layout component with sidebar, header and main content area
 function MainLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const { user } = useAuth();
   
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex flex-col bg-primary-bg">
       <Header onMenuClick={() => {}} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
@@ -91,46 +92,41 @@ function AppRoutes() {
         } 
       />
       
-      {/* Protected routes with main layout */}
+      {/* News routes with main layout - accessible to all users */}
       <Route 
         path="/feed" 
         element={
-          <ProtectedRoute>
-            <MainLayout>
-              <NewsFeed />
-            </MainLayout>
-          </ProtectedRoute>
+          <MainLayout>
+            <NewsFeed />
+          </MainLayout>
         } 
       />
       
       <Route 
         path="/local" 
         element={
-          <ProtectedRoute>
-            <MainLayout>
-              <LocalNews />
-            </MainLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/profile" 
-        element={
-          <ProtectedRoute>
-            <MainLayout>
-              <Profile />
-            </MainLayout>
-          </ProtectedRoute>
+          <MainLayout>
+            <LocalNews />
+          </MainLayout>
         } 
       />
       
       <Route 
         path="/search" 
         element={
+          <MainLayout>
+            <SearchResults />
+          </MainLayout>
+        } 
+      />
+      
+      {/* Protected routes with main layout */}
+      <Route 
+        path="/profile" 
+        element={
           <ProtectedRoute>
             <MainLayout>
-              <SearchResults />
+              <Profile />
             </MainLayout>
           </ProtectedRoute>
         } 
@@ -145,7 +141,7 @@ function AppRoutes() {
 // Content component that includes the routes and loading states
 function AppContent() {
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div className="flex flex-col min-h-screen bg-primary-bg text-text-primary">
       <Suspense fallback={<LoadingSpinner size="large" />}>
         <AppRoutes />
       </Suspense>

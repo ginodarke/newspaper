@@ -11,6 +11,18 @@
 - When using seaborn styles in matplotlib, use 'seaborn-v0_8' instead of 'seaborn' as the style name due to recent seaborn version changes
 - Use 'gpt-4o' as the model name for OpenAI's GPT-4 with vision capabilities
 - When searching for recent news, use the current year (2025) instead of previous years, or simply use the "recent" keyword to get the latest information
+- When using seaborn styles in matplotlib, use 'seaborn-v0_8' instead of 'seaborn' as the style name due to recent seaborn version changes
+- When implementing 3D card effects with CSS, use a combination of perspective, translateZ, and rotateX/Y transformations to create a realistic depth effect
+- For implementing dark themes in React applications, define a comprehensive set of CSS variables for colors, typography, and animations to ensure consistency
+- When using Framer Motion with React, leverage the AnimatePresence component for smooth mounting/unmounting animations in the UI
+- Implement a radial gradient for hover glow effects by using a semi-transparent background with radial-gradient and positioning it absolutely within the container
+- Add subtle lighting effects to 3D cards by using linear gradients on the edges of components to simulate light reflection
+- Use z-index and translateZ in combination to properly layer elements in a 3D space without causing rendering issues
+- To create smooth tab animations, use layoutId with motion.div to animate between selected states
+- Implement inner-light effects by using subtle linear-gradient backgrounds on the top edges of UI components
+- When designing dark themes, ensure sufficient contrast between text and background colors (at least 4.5:1 ratio for normal text)
+- For creating a consistent elevation system, define a set of shadow values with increasing blur and spread radiuses
+- Animation durations should be kept between 200-500ms for optimal user experience, with subtle animations shorter and more dramatic ones longer
 - When implementing a React application with TypeScript, ensure that the TypeScript types for React and other libraries are properly installed to avoid linter errors
 - When testing React components with Vitest, ensure to create a proper setup file that includes necessary mocks for browser APIs like matchMedia and localStorage
 - For Vite projects, define custom environment variables in a vite-env.d.ts file using the ImportMetaEnv interface to ensure proper TypeScript integration

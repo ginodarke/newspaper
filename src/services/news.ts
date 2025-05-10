@@ -38,6 +38,8 @@ export interface GetArticlesOptions {
   userPreferences?: UserPreferences;
   location?: LocationData;
   category?: string | null;
+  sortBy?: 'relevance' | 'popularity' | 'publishedAt' | 'newest';
+  country?: string;
 }
 
 export interface ArticlesResponse {
@@ -52,21 +54,42 @@ export async function getArticles(options: GetArticlesOptions): Promise<Articles
     const pageSize = options.pageSize || 10;
     const category = options.category || (options.userPreferences?.categories?.[0] || null);
     const userLocation = options.location;
+    const sortBy = options.sortBy || 'publishedAt';
+    const country = options.country || DEFAULT_COUNTRY;
     
-    console.log(`Fetching articles: page=${page}, pageSize=${pageSize}, category=${category || 'All'}`);
+    console.log(`Fetching articles: page=${page}, pageSize=${pageSize}, category=${category || 'All'}, sortBy=${sortBy}, country=${country}`);
     
     // First try to get real articles using our existing function
     try {
       const articlesArray = await getArticlesOld(category, userLocation);
       
+      // Apply sorting based on sortBy parameter
+      let sortedArticles = [...articlesArray];
+      if (sortBy === 'popularity') {
+        sortedArticles.sort((a, b) => (b.views || 0) - (a.views || 0));
+      } else if (sortBy === 'newest' || sortBy === 'publishedAt') {
+        sortedArticles.sort((a, b) => 
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+        );
+      } else if (sortBy === 'relevance' && options.userPreferences) {
+        // For relevance, we would need a more complex algorithm based on user preferences
+        // This is a simplified version
+        const userInterests = options.userPreferences.categories || [];
+        sortedArticles.sort((a, b) => {
+          const aRelevance = userInterests.includes(a.category) ? 1 : 0;
+          const bRelevance = userInterests.includes(b.category) ? 1 : 0;
+          return bRelevance - aRelevance;
+        });
+      }
+      
       // Calculate pagination
       const start = (page - 1) * pageSize;
       const end = start + pageSize;
-      const paginatedArticles = articlesArray.slice(start, end);
+      const paginatedArticles = sortedArticles.slice(start, end);
       
       return {
         articles: paginatedArticles,
-        totalResults: articlesArray.length
+        totalResults: sortedArticles.length
       };
     } catch (error) {
       console.error('Error fetching real articles, falling back to mocks:', error);
@@ -74,9 +97,18 @@ export async function getArticles(options: GetArticlesOptions): Promise<Articles
     
     // Fall back to mock data if real API calls fail
     const mockArticles = getMockArticles();
-    const filteredMocks = category 
+    let filteredMocks = category 
       ? mockArticles.filter(article => article.category === category)
       : mockArticles;
+    
+    // Apply sorting to mock articles
+    if (sortBy === 'popularity') {
+      filteredMocks.sort((a, b) => (b.views || 0) - (a.views || 0));
+    } else if (sortBy === 'newest' || sortBy === 'publishedAt') {
+      filteredMocks.sort((a, b) => 
+        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+      );
+    }
     
     // Calculate pagination
     const start = (page - 1) * pageSize;
