@@ -9,6 +9,7 @@ import { getUserLocation } from '../services/location';
 import NewsCard from '../components/NewsCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { categories } from '../components/layout/Sidebar';
+import DeploymentTest from '../components/DeploymentTest';
 
 export default function Home() {
   const [trendingArticles, setTrendingArticles] = useState<Article[]>([]);
@@ -152,6 +153,9 @@ export default function Home() {
           <p className="text-text-primary">{error}</p>
         </div>
       )}
+      
+      {/* Deployment Test Component */}
+      <DeploymentTest />
       
       {/* Welcome Section */}
       <motion.div 
